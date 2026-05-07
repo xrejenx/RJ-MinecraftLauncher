@@ -1,0 +1,16 @@
+App_name = RJ Launcher
+App_ver = 0.3.2
+Build_prefix = 236
+Build_type = Underdevelopment
+Build_type_prefix = undev
+Build_date = 08:18 (UTC+7) at 05/06/2026
+Build_number = 22
+Core_WindowTitle_Windows = <App_name> <App_ver>-<Build_prefix> <Build_type> (Windows)
+Core_WindowTitle_Linux = <App_name> <App_ver>-<Build_prefix> <Build_type> (LinuxQt)
+Update_note =[
+0.3.2 Update (Build Number 22)
+Remove Mojang and Adoptium Java.
+Added Java Test + open java folder.
+fixed LWGJL Libaries to use native folder.
+fixed zulu java download to download tar/zip not package.
+]

@@ -1,0 +1,78 @@
+name: Multi-Platform Portable Build
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # matrix to run Windows (MSVC), Mac (Clang/M1), and Linux (GCC)
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.6.0'
+        modules: 'qtwebengine' # Required for your RJML features
+
+    # --- OS Specific Setup ---
+    - name: Install Linux Dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xinput0 libxcb-shape0 zip
+
+    - name: Setup MSVC (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    # --- Build Step ---
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build Project
+      run: cmake --build build --config Release
+
+    # --- Packaging into ZIP ---
+
+    - name: Package Windows (Portable)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        # Use windeployqt to grab all required DLLs
+        # Note: windeployqt is usually in the Qt bin folder provided by the action
+        windeployqt --release --out build/Windows-Portable --no-translations build/Windows-Portable/RJML.exe
+        # Create ZIP
+        Compress-Archive -Path build/Windows-Portable/* -DestinationPath RJML-Windows-Portable.zip
+
+    - name: Package macOS (App Bundle)
+      if: runner.os == 'macOS'
+      run: |
+        # Deploy frameworks into the .app bundle
+        macdeployqt build/Mac-Portable/RJML.app -qmldir=.
+        # ZIP the .app bundle
+        zip -r RJML-Mac-Portable.zip build/Mac-Portable/RJML.app
+
+    - name: Package Linux (Binary)
+      if: runner.os == 'Linux'
+      run: |
+        mkdir -p RJML-Linux
+        cp build/Linux-Portable/RJML RJML-Linux/
+        zip -r RJML-Linux-Portable.zip RJML-Linux/
+
+    # --- Upload to GitHub Artifacts ---
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: RJML-${{ runner.os }}-Portable
+        path: "*.zip"

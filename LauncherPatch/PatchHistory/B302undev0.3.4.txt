@@ -1,0 +1,14 @@
+App_name = RJ Launcher
+App_ver = 0.3.4
+Build_prefix = 302
+Build_type = Underdevelopment
+Build_type_prefix = undev
+Build_date = 11:16 (UTC+7) at 05/06/2026
+Build_number = 25
+Core_WindowTitle_Windows = <App_name> <App_ver>-<Build_prefix> <Build_type> (Windows)
+Core_WindowTitle_Linux = <App_name> <App_ver>-<Build_prefix> <Build_type> (LinuxQt)
+Update_note =[
+0.3.4 Update (Build Number 25)
+Simple the Intance Wizard
+Added Forge, Fabric, NeoForge, Quilt Modloader
+]

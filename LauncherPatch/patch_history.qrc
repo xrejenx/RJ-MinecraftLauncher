@@ -1,0 +1,8 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/">
+    <file>PatchHistory/B014undev0.2.txt</file>
+    <file>PatchHistory/B007undev0.2.txt</file>
+    <file>PatchHistory/B011undev0.1.txt</file>
+    <file>PatchHistory/B021undev0.1.txt</file>
+</qresource>
+</RCC>

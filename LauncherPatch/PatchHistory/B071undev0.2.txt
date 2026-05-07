@@ -1,0 +1,14 @@
+App_name = RJ Launcher
+App_ver = 0.2.6
+Build_prefix = 071
+Build_type = Underdevelopment
+Build_type_prefix = undev
+Build_date = 13:11 (UTC+7) at 05/05/2026
+Build_number = 12
+Core_WindowTitle_Windows = <App_name> <App_ver>-<Build_prefix> <Build_type> (Windows)
+Core_WindowTitle_Linux = <App_name> <App_ver>-<Build_prefix> <Build_type> (LinuxQt)
+Update_note =[
+Adding Minecraft args creator.
+Added way to launch minecraft.
+Added way to manage instances.
+]

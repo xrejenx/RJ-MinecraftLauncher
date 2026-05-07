@@ -1,0 +1,14 @@
+App_name = RJ Launcher
+App_ver = 0.3.1
+Build_prefix = 216
+Build_type = Underdevelopment
+Build_type_prefix = undev
+Build_date = 07:05 (UTC+7) at 05/06/2026
+Build_number = 21
+Core_WindowTitle_Windows = <App_name> <App_ver>-<Build_prefix> <Build_type> (Windows)
+Core_WindowTitle_Linux = <App_name> <App_ver>-<Build_prefix> <Build_type> (LinuxQt)
+Update_note =[
+0.3.1 Update (BuildNum 21)
+Finally Add New Instance Wizard
+Remake the profile on main window with original one
+]

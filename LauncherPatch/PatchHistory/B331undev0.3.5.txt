@@ -1,0 +1,13 @@
+App_name = RJ Launcher
+App_ver = 0.3.5
+Build_prefix = 331
+Build_type = Underdevelopment
+Build_type_prefix = undev
+Build_date = 11:38 (UTC+7) at 05/06/2026
+Build_number = 27
+Core_WindowTitle_Windows = <App_name> <App_ver>-<Build_prefix> <Build_type> (Windows)
+Core_WindowTitle_Linux = <App_name> <App_ver>-<Build_prefix> <Build_type> (LinuxQt)
+Update_note =[
+0.3.5 Update (Build Number 27)
+Fix Java auto-download (real)
+]

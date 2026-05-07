@@ -1,0 +1,14 @@
+App_name = RJ Launcher
+App_ver = 0.3.0
+Build_prefix = 161
+Build_type = Underdevelopment
+Build_type_prefix = undev
+Build_date = 04:01 (UTC+7) at 05/06/2026
+Build_number = 16
+Core_WindowTitle_Windows = <App_name> <App_ver>-<Build_prefix> <Build_type> (Windows)
+Core_WindowTitle_Linux = <App_name> <App_ver>-<Build_prefix> <Build_type> (LinuxQt)
+Update_note =[
+Update java download
+Minecraft download improvement
+Update backend
+]
