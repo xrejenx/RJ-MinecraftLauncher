@@ -39,18 +39,22 @@ void ApplyLauncherIcon(QWidget* window) {
                 pix = pix.copy(left, top, (right - left) + 1, (bottom - top) + 1);
             }
 
-            // 2. Fill Stretch: To make small text like "UNDEV" or "BETA" readable,
-            // we maximize the height by stretching the logo to fill the square gap.
-            // This removes the "tiny" look caused by wide aspect ratios.
+            // 2. Proportional Scaling: To fix the "stretched" look, we now use
+            // KeepAspectRatio while centering the logo in the square icon slot.
+            // The Auto-Crop above ensures the logo stays as large as possible.
             auto createStandardIcon = [&](int s) {
                 QPixmap final(s, s);
                 final.fill(Qt::transparent);
                 QPainter p(&final);
                 p.setRenderHint(QPainter::SmoothPixmapTransform);
                 
-                // Stretch to fill the square, making the version box 50% larger
-                // We leave a 1px margin to prevent edge-bleeding on some OS scales
-                p.drawPixmap(1, 1, s - 2, s - 2, pix);
+                // Scale while maintaining the correct 3:2 aspect ratio
+                QPixmap scaled = pix.scaled(s - 2, s - 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                
+                // Center the logo in the square to avoid "tiny" offset looks
+                int x = (s - scaled.width()) / 2;
+                int y = (s - scaled.height()) / 2;
+                p.drawPixmap(x, y, scaled);
                 p.end();
                 return final;
             };

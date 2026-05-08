@@ -20,6 +20,9 @@ include_directories(
     Account
     Account/OFFLINE
     CmakeLauncherIcon
+    CMakeSplashScreen
+    CMakeSplashScreen/Fetch
+    CMakeSplashScreen/Downloader
     LTheme
     Profile
     Profile_java
@@ -38,6 +41,14 @@ add_executable(WDLauncher
     Instances/instra_list.cpp
     LauncherPatch/version.cpp
     CmakeLauncherIcon/icon.cpp
+    CMakeSplashScreen/splash.cpp
+    CMakeSplashScreen/splashbar.cpp
+    CMakeSplashScreen/splashscreenlogic.cpp
+    CMakeSplashScreen/assets/splashmanager.cpp
+    CMakeSplashScreen/assets/splashcolor.cpp
+    CMakeSplashScreen/Fetch/splashfetchupdate.cpp
+    CMakeSplashScreen/Fetch/fetchhelper.cpp
+    CMakeSplashScreen/Downloader/splashdownloadmanager.cpp
     LTheme/theme.cpp
     LTheme/Themeloader.cpp
     Profile/InstanceSettings.cpp
@@ -75,6 +86,22 @@ qt_add_resources(WDLauncher "launcher_icons"
         "CmakeLauncherIcon/undev/icon.png"
         "CmakeLauncherIcon/beta/icon.png"
         "CmakeLauncherIcon/release/icon.png"
+)
+
+# Splash Icons based on Build Legit Prefixes
+qt_add_resources(WDLauncher "splash_icons"
+    PREFIX "/launcher/splash"
+    FILES
+        "CmakeLauncherIcon/undev/icon.png"
+        "CmakeLauncherIcon/beta/icon.png"
+        "CmakeLauncherIcon/release/icon.png"
+)
+
+# API Configuration
+qt_add_resources(WDLauncher "api_config"
+    PREFIX "/config"
+    FILES
+        "CMakeSplashScreen/api.txt"
 )
 
 # App name change from Codename To Production

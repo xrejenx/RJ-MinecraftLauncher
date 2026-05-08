@@ -26,6 +26,11 @@
 #include "theme.h"
 #include "Core.h"
 
+// Forward declarations for Splash Screen Logic
+namespace SplashScreenLogic {
+    bool run();
+}
+
 // External function interfaces
 void ShowJavaProfileWindow(QWidget *parent);
 void LogLauncherEvent(const QString &message);

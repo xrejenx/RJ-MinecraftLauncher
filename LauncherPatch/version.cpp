@@ -14,6 +14,29 @@
 // External logger interface
 void LogLauncherEvent(const QString &message);
 
+int GetBuildNumber() {
+    int maxBuild = -1;
+    QDirIterator it(":/patches", QStringList() << "*.txt", QDir::Files);
+    while (it.hasNext()) {
+        QFile file(it.next());
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
+
+        QTextStream in(&file);
+        int currentBuild = -1;
+        while (!in.atEnd()) {
+            QString line = in.readLine().trimmed();
+            if (line.startsWith("Build_number")) {
+                currentBuild = line.section('=', 1).trimmed().toInt();
+            }
+        }
+        if (currentBuild > maxBuild) {
+            maxBuild = currentBuild;
+        }
+        file.close();
+    }
+    return maxBuild;
+}
+
 QString GetBuildTypePrefix() {
     int maxBuild = -1;
     QString prefix = "release"; // Default

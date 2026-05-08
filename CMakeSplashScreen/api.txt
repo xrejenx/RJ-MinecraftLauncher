@@ -1,0 +1,2 @@
+// api (TYPE = GITHUB REPO)
+api = xrejenx/RJ-MinecraftLauncher
