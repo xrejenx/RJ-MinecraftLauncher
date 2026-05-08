@@ -4,3 +4,7 @@ build/
 .vscode/
 .idea/
 cmake-build-*/
+/assets
+/readme
+/Need To Be Fix
+/Theme_Add_Please
