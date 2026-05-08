@@ -23,7 +23,6 @@ public:
     explicit VanillaVersionDialog(QWidget *parent = nullptr) : QDialog(parent) {
         setWindowTitle("Select Minecraft Version");
         setFixedSize(450, 550);
-        setStyleSheet("QDialog { background-color: white; } QLabel { color: black; }");
 
         auto *layout = new QVBoxLayout(this);
         layout->addWidget(new QLabel("<b>Official Minecraft Versions</b>"));
@@ -44,7 +43,6 @@ public:
         layout->addLayout(filterLayout);
 
         versionList = new QListWidget(this);
-        versionList->setStyleSheet("border: 1px solid #ccc;");
         layout->addWidget(versionList);
 
         auto *btnLayout = new QHBoxLayout();

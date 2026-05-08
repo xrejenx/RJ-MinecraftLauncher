@@ -89,14 +89,7 @@ void ThemeLoader::applyTheme() {
         QString("QMainWindow { background-color: %1; }").arg(bg) :
         QString("QMainWindow { border-image: url(%1) 0 0 0 0 stretch stretch; }").arg(img);
     
-    // Generate global Qt Style Sheet (QSS) - REMOVED QPushButton STYLING
-    QString qss = QString(
-        "%1" // Window background
-        "QWidget { color: %2; }"
-        "QLineEdit, QPlainTextEdit { background-color: rgba(255,255,255,150); border: 1px solid %3; color: black; }"
-    ).arg(windowStyle, fg, brd);
-    
-    qApp->setStyleSheet(qss);
+    qApp->setStyleSheet(windowStyle);
 }
 
 QStringList ThemeLoader::getAvailableThemes() {

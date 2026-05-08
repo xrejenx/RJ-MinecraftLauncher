@@ -22,7 +22,6 @@ JavaProfileWindow::JavaProfileWindow(QWidget *parent) : QDialog(parent) {
 
     auto *mainArea = new QHBoxLayout();
     instanceList = new QListWidget(this);
-    instanceList->setStyleSheet("border: 1px solid #c0c0c0; background: #f9f9f9; color: black;");
     refreshInstances();
     mainArea->addWidget(instanceList, 1);
 

@@ -1,51 +1,51 @@
 #include "splash.h"
-#include "LauncherPatch/version.cpp"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPushButton>
+#include <QGraphicsDropShadowEffect>
+#include <QPropertyAnimation>
+#include <QEasingCurve>
+
+// Use forward declarations instead of including .cpp files to avoid linker errors
+QString GetLauncherTitle();
 
 SplashScreen::SplashScreen(QWidget *parent) : QDialog(parent) {
-    setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
+    setWindowFlags(Qt::Dialog | Qt::WindowStaysOnTopHint);
+    setWindowTitle(GetLauncherTitle());
     setFixedSize(450, 300);
     setupUi();
 }
 
 void SplashScreen::setupUi() {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 0, 10);
-
-    QWidget *titleBar = new QWidget(this);
-    titleBar->setFixedHeight(30);
-    titleBar->setStyleSheet("background-color: rgba(0,0,0,50);");
-    QHBoxLayout *titleLayout = new QHBoxLayout(titleBar);
-    titleLayout->setContentsMargins(10, 0, 5, 0);
-
-    titleLayout->addWidget(new QLabel("[RJ]", this));
-    titleLabel = new QLabel(GetLauncherTitle(), this);
-    titleLabel->setStyleSheet("font-size: 10px; font-weight: bold; color: black;");
-    titleLayout->addWidget(titleLabel, 1);
-    
-    QPushButton *closeBtn = new QPushButton("X", this);
-    closeBtn->setFixedSize(20, 20);
-    closeBtn->setStyleSheet("background: transparent; border: none; font-weight: bold; color: black;");
-    connect(closeBtn, &QPushButton::clicked, this, &QDialog::reject);
-    titleLayout->addWidget(closeBtn);
-    mainLayout->addWidget(titleBar);
+    mainLayout->setContentsMargins(40, 20, 40, 20); // Add margins to replace the previous QSS margin
 
     logoLabel = new QLabel(this);
     logoLabel->setAlignment(Qt::AlignCenter);
     mainLayout->addWidget(logoLabel, 1);
 
+    // Create the "Glow" effect
+    QGraphicsDropShadowEffect *glow = new QGraphicsDropShadowEffect(this);
+    glow->setBlurRadius(20);
+    glow->setColor(QColor("#90EE90")); // Light Green glow
+    glow->setOffset(0, 0);
+    logoLabel->setGraphicsEffect(glow);
+
+    // Pulse Animation for the glow
+    QPropertyAnimation *pulse = new QPropertyAnimation(glow, "blurRadius", this);
+    pulse->setDuration(1500);
+    pulse->setStartValue(10);
+    pulse->setEndValue(50);
+    pulse->setEasingCurve(QEasingCurve::InOutQuad);
+    pulse->setLoopCount(-1); // Infinite loop
+    pulse->start();
+
     progressBar = new QProgressBar(this);
-    progressBar->setFixedHeight(15);
-    progressBar->setTextVisible(true);
-    progressBar->setFormat("%p%");
-    progressBar->setStyleSheet("QProgressBar { border: 1px solid grey; border-radius: 5px; text-align: right; margin: 0 40px; } "
-                               "QProgressBar::chunk { background-color: #05B8CC; }");
+    // Removing style sheets allows the OS to render its own native progress bar
+    progressBar->setTextVisible(false); 
     mainLayout->addWidget(progressBar);
 
     taskLabel = new QLabel("Initializing...", this);
-    taskLabel->setStyleSheet("font-size: 10px; padding-left: 10px; color: black;");
     mainLayout->addWidget(taskLabel);
 }
 
@@ -64,6 +64,10 @@ void SplashScreen::setLogo(const QPixmap &pixmap) {
 void SplashScreen::setBgColor(const QColor &color) {
     QPalette pal = palette();
     pal.setColor(QPalette::Window, color);
+    pal.setColor(QPalette::WindowText, Qt::white); // Ensure text is readable
     setPalette(pal);
     setAutoFillBackground(true);
+    
+    // Set global text color for labels inside the splash
+    setStyleSheet("QLabel { color: white; }");
 }

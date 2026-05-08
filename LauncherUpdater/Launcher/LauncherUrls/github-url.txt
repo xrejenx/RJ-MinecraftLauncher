@@ -1,0 +1,5 @@
+// Update pages using github
+
+PageType = "Github"
+MainGithub = "https://github.com/xrejenx/RJ-MinecraftLauncher"
+ReleaseGithub = "https://github.com/xrejenx/RJ-MinecraftLauncher/releases'

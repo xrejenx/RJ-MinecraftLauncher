@@ -16,10 +16,14 @@
 #include <QCloseEvent>
 #include <QJsonObject>
 #include <QScrollArea>
+#include <QSplitter>
+#include <QTextBrowser>
 #include <QFile>
 #include <QDir>
 #include <QFileInfo> // Ensure QFileInfo is included
+#include <QTimer>
 #include <QSettings>
+#include <functional>
 #include <QtWebView/QtWebView>
 #include "icon.h"
 #include <QProcess>
@@ -31,17 +35,47 @@ namespace SplashScreenLogic {
     bool run();
 }
 
+struct ReleaseAsset {
+    QString name;
+    QString url;
+    qint64 size;
+};
+
+struct ReleaseInfo {
+    int buildNumber;
+    QString tagName;
+    QString description;
+    bool isPreRelease;
+    QList<ReleaseAsset> assets;
+};
+
+struct UpdateInfo {
+    QList<ReleaseInfo> allReleases;
+};
+
+UpdateInfo CheckForUpdates(); // Now in LauncherUpdater/LauncherFetch/fetch.cpp
+void LogLauncherEvent(const QString &message);
+
+QDialog* CreateDownloadProgressDialog(const QList<QPair<QString, QString>>& filesToDownload, QWidget *parent);
+void ConnectDownloadDialogSignals(QDialog *dialog, QObject *receiver, 
+                                  std::function<void(bool, const QList<QString>&)> finishedCb, 
+                                  std::function<void(const QList<QString>&)> cancelledCb);
+
+#include "LauncherUpdater/LauncherDownload/downloadzip.h" // For ExtractZipFile
+
 // External function interfaces
 void ShowJavaProfileWindow(QWidget *parent);
-void LogLauncherEvent(const QString &message);
 void ShowProfileWindow(QWidget *parent);
 void ShowSettingsWindow(QWidget *parent);
 void EnsureConsoleVisibility();
 QString GetLauncherTitle(); // From LauncherPatch/version.cpp
+int GetBuildNumber();      // From LauncherPatch/version.cpp
 QString GetAppName();      // From LauncherPatch/version.cpp
 QString GetLatestUpdateNote();
 int GetRequiredJavaMajorVersion(const QString &versionId, int metadataMajor = 0); // From instance-javaRequirement.cpp
+QWidget* CreateModernUpdateTab(QWidget *parent); // From updatecore.cpp
 QString GetLwglVersionForMc(const QString &mcVersion); // From lgwl-handlelib.cpp
+void SyncExtractionLibrary(); // From downloadlib.cpp
 void PopulateInstanceList(QComboBox *comboBox); // Changed from QListWidget
 QString GetLwglNativesPath(const QString &mcVersion); // Forward declaration for LWJGL path
 
@@ -66,6 +100,7 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     // Initialize Theme System
     ThemeLoader::initialize();
     ApplyLauncherIcon(this);
+    SyncExtractionLibrary();
 
     LogLauncherEvent("Launcher Core Initialized.");
     EnsureConsoleVisibility();
@@ -90,14 +125,9 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     gameConsole->setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', monospace;");
     tabs->addTab(gameConsole, "Game Output");
     
-    QScrollArea *updateScroll = new QScrollArea(this);
-    QLabel *updateNoteLabel = new QLabel(GetLatestUpdateNote(), updateScroll);
-    updateNoteLabel->setWordWrap(true);
-    updateNoteLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-    updateNoteLabel->setStyleSheet("padding: 10px; background: white;");
-    updateScroll->setWidget(updateNoteLabel);
-    updateScroll->setWidgetResizable(true);
-    tabs->addTab(updateScroll, "LauncherUpdate");
+    // --- Tab 3: Update Manager (Split View) ---
+    QWidget *updateManagerTab = CreateModernUpdateTab(this); // Now from updatecore.cpp
+    tabs->addTab(updateManagerTab, "Launcher Update");
 
     // --- Tab 4: Theme ---
     QWidget *themeTab = new QWidget(this);
@@ -402,11 +432,152 @@ void MinecraftLauncher::updateUserLabel() {
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     QDir::setCurrent(QCoreApplication::applicationDirPath());
-    
+    QtWebView::initialize();
+
     app.setApplicationName(GetAppName());
-    
+
+    // Prevent the application from exiting when the splash dialog closes
+    app.setQuitOnLastWindowClosed(false);
+
+    // Run Splash Logic ONLY ONCE. 
+    // If it returns false, the app exits (e.g., an update was triggered).
+    if (!SplashScreenLogic::run()) {
+        return 0;
+    }
+
+    // Initialize the main window ONLY after the splash screen has completed.
     MinecraftLauncher w;
-    w.show();
     
+    // Transition to Main Window: Show, normalize, raise, and activate it.
+    w.show();
+    w.showNormal(); // Ensure it isn't starting minimized
+
+    // On some Linux window managers, we need to defer activation slightly 
+    // to prevent the OS from losing the window handle during the splash transition.
+    QTimer::singleShot(100, &w, [&w]() {
+        w.raise();
+        w.activateWindow();
+    });
+
+    // Use a safety delay before re-enabling automatic shutdown. This prevents
+    // a "sudden death" race condition where the app might quit if the OS
+    // hasn't fully acknowledged the main window's presence yet.
+    QTimer::singleShot(500, [&w]() {
+        // Re-enable native quit behavior now that the main window is definitely stable.
+        QApplication::setQuitOnLastWindowClosed(true);
+
+        QListWidget* list = w.findChild<QListWidget*>("updateList");
+        QTextBrowser* details = w.findChild<QTextBrowser*>("updateDetails");
+        QPushButton* installBtn = w.findChild<QPushButton*>("installUpdateBtn");
+        QTextBrowser* newsBrowser = w.findChild<QTextBrowser*>("newsBrowser");
+        QListWidget* fileList = w.findChild<QListWidget*>("fileList");
+        QLabel* currentVerLabel = w.findChild<QLabel*>("currentVerLabel");
+
+        if (currentVerLabel) {
+            currentVerLabel->setText("Current Installed Build: " + QString::number(GetBuildNumber()));
+        }
+
+        if (list && details && installBtn && fileList) {
+            QObject::connect(list, &QListWidget::itemSelectionChanged, [list, details, installBtn, fileList]() {
+                QListWidgetItem *item = list->currentItem();
+                if (item) {
+                    details->setMarkdown(item->data(Qt::UserRole).toString());
+                    
+                    fileList->clear();
+                    QVariantList assets = item->data(Qt::UserRole + 1).toList();
+                    for (const QVariant &v : assets) {
+                        QVariantMap map = v.toMap();
+                        QListWidgetItem *fItem = new QListWidgetItem(map["name"].toString(), fileList);
+                        fItem->setCheckState(Qt::Checked);
+                        fItem->setData(Qt::UserRole, map["url"].toString());
+                    }
+                    installBtn->setEnabled(true);
+                } else {
+                    installBtn->setEnabled(false);
+                }
+            });
+
+            QObject::connect(installBtn, &QPushButton::clicked, [&w, list, fileList]() {
+                QListWidgetItem *selectedVersionItem = list->currentItem();
+                if (!selectedVersionItem) return;
+
+                QString versionTag = selectedVersionItem->text(); // e.g., "v1.0.0 (Stable)"
+                QString buildNumber = QString::number(selectedVersionItem->data(Qt::UserRole + 2).toInt());
+
+                QList<QPair<QString, QString>> filesToDownload; // url, destinationPath
+                QString downloadDir = "LauncherUpdater/LauncherSource/"; // Where downloaded zips go
+
+                for (int i = 0; i < fileList->count(); ++i) {
+                    QListWidgetItem *fileItem = fileList->item(i);
+                    if (fileItem->checkState() == Qt::Checked) {
+                        QString fileUrl = fileItem->data(Qt::UserRole).toString();
+                        QString fileName = fileItem->text();
+                        QString destinationPath = downloadDir + fileName;
+                        filesToDownload.append({fileUrl, destinationPath});
+                    }
+                }
+
+                if (filesToDownload.isEmpty()) {
+                    QMessageBox::information(&w, "No Files Selected", "Please select at least one file to download.");
+                    return;
+                }
+
+                QDialog *downloadDialog = CreateDownloadProgressDialog(filesToDownload, &w);
+                ConnectDownloadDialogSignals(downloadDialog, &w, [buildNumber, &w, downloadDialog](bool success, const QList<QString>& downloadedFiles) {
+                    if (success && !downloadedFiles.isEmpty()) {
+                        // Prompt to install
+                        auto reply = QMessageBox::question(&w, "Download Complete",
+                                                           "All selected files downloaded successfully. Do you want to install them now?",
+                                                           QMessageBox::Yes | QMessageBox::No);
+                        if (reply == QMessageBox::Yes) {
+                            for (const QString& filePath : downloadedFiles) {
+                                ExtractZipFile(filePath, "."); // Extract to current directory (launcher root)
+                            }
+                            QMessageBox::information(&w, "Installation Complete", "Update installed. Please restart the launcher.");
+                        } else {
+                            QMessageBox::information(&w, "Installation Cancelled", "Downloaded files are available in the 'Downloaded Packages' tab.");
+                        }
+                    } else if (!success) {
+                        QMessageBox::critical(&w, "Download Failed", "Some files failed to download. Please check logs.");
+                    }
+                    downloadDialog->deleteLater();
+                }, [&w, downloadDialog](const QList<QString>& partiallyDownloadedFiles) {
+                    QMessageBox::information(&w, "Download Cancelled", "Download was cancelled. Partially downloaded files remain in 'Downloaded Packages' tab.");
+                    downloadDialog->deleteLater();
+                });
+
+                downloadDialog->exec(); // Show as modal dialog
+            });
+        }
+
+        UpdateInfo uInfo = CheckForUpdates();
+        QString newsHtml;
+
+        for (const auto &rel : uInfo.allReleases) {
+            // Populate Tab 1: News (Aggregate descriptions)
+            newsHtml += "# " + rel.tagName + (rel.isPreRelease ? " (Pre-release)" : " (Stable)") + "\n";
+            newsHtml += rel.description + "\n\n---\n\n";
+
+            // Populate Tab 2: Update Selection
+            QString label = QString("%1 (%2)").arg(rel.tagName, rel.isPreRelease ? "Pre-release" : "Stable");
+            QListWidgetItem *item = new QListWidgetItem(label, list);
+            item->setData(Qt::UserRole, rel.description);
+            
+            QVariantList assetsData;
+            for (const auto &asset : rel.assets) {
+                QVariantMap map;
+                map["name"] = asset.name;
+                map["url"] = asset.url;
+                assetsData.append(map);
+            }
+            item->setData(Qt::UserRole + 1, assetsData);
+            item->setData(Qt::UserRole + 2, rel.buildNumber);
+        }
+
+        if (newsBrowser) {
+            if (newsHtml.isEmpty()) newsBrowser->setText("Launcher is up to date.");
+            else newsBrowser->setMarkdown(newsHtml);
+        }
+    });
     return app.exec();
 }

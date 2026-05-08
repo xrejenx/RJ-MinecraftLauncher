@@ -1,0 +1,34 @@
+Frist launcher Create LauncherDownload to store launcher zips,
+in LauncherDownload we will create LauncherzipExtractor which store every single extractor zip tar.gz or anythings into portable ver in LauncherzipExtractor
+this will download which get version and extractor from user os this will call to unzip zip files in LauncherDownload get after download
+~/Documents/WDLauncher/LauncherUpdater
+❯ tree
+.
+├── Launcher // Base
+│   └── LauncherUrls // Urls for Display/Fetch
+│       └── github-url.txt //Store Fetch ways
+├── LauncherDefender // sha1/2 download and store here then check with zip files and let the Updater can look to folder with newest download time and replace main app with the zip one
+├── LauncherFetch // get Launcher/LauncherUrls/github.txt and display the update&download way display in LauncherUpdate tab
+├── LauncherSource // This create in frist launcher in LauncherDownload/LauncherSource this will store launcher olds zips and old version of excutable
+├── LauncherUpdateCrashHandle // This will handle if launcher crash or unexpected things happen on Updatesite
+├── LauncherDownload // Yes it's handle the zip file download which download the tick download in LauncherUpdate tab
+└── LauncherzipExtractor // Yes this alr mention it used to store extractor lib to use in zip extractor
+
+8 directories, 1 file
+
+~/Documents/WDLauncher/LauncherUpdater
+❯
+new folder we gonna use for LauncherUpdate tab
+LauncherUpdater = root for this
+in Launcher/LauncherUrls/ <-- Create urldetector.cpp which used to get github repo and lead the updater source
+in LauncherDefender/ <-- Create  shacheckv1.cpp and shacheckv2.cpp, v1 for sha1 v2 for sha2
+n LauncherDefender/ <-- Create shachecklocal.cpp, this check zips file user downloaded the lastest if it worng delete and make download again
+in LauncherFetch/ <-- Create fetch.cpp fetchurl.cpp fetchdetail.cpp fetchos.cpp, fetch used to get zip sha1 & 2, fetchurl used to get zip files url for download, fetch detail is for fetch to store url detail to check selected update release description in LauncherUpdate tab, fetchos is the os detector for LauncherzipExtractor  to download extractor lib
+in LauncherSource/zipdetector.cpp, this check for downloaded zip files in thirdtab inside LauncherUpdate, (frist tab named News get from fetch urls show likely github releases page, second tab Update this selectable used to download zip and download, third tab is Downloaded Packages)
+in LauncherUpdateCrashHandle/crash-handle.cpp, crash.cpp, this handle crash and in crash.cpp copy crash and create log-<time>.log in the same as crash.cpp stay or in LauncherUpdate/log/crash/ <--
+in LauncherDownload/download.cpp, download-task.cpp, downloadzip.cpp, downloadpackage.cpp, download and download task used to download zip file and store in LauncherSource for downloadpackage.cpp used to download sha1/2 , downloadzip.cpp handle zip download and use LauncherzipExtractor/<extractorfolder>/ <-- to extract and store zip file extracted to LauncherSource/ExtractedZip/ <--,
+in LauncherzipExtractor/downloadlib.cpp <-- download extractor lib get os from fetchos.cpp
+in Launcher/ create updater.cpp <-- this will get all of this after everythings downloaded updater.cpp will prompt user to update or cancle and click update in Tab3 later from zip files,
+in Launcher/ create updatecore.cpp <-- this will make everythings combine it to LauncherUpdate tab,
+
+and boom! modern update uwu

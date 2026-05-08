@@ -1,14 +1,12 @@
 App_name = RJ Launcher
 App_ver = 0.3.8
-Build_prefix = 491
+Build_prefix = 511
 Build_type = Underdevelopment
 Build_type_prefix = undev
-Build_date = 01:05 (UTC+7) at 05/07/2026
-Build_number = 30
+Build_date = 01:02 (UTC+7) at 05/07/2026
+Build_number = 32
 Core_WindowTitle_Windows = <App_name> <App_ver>-<Build_prefix> <Build_type> (Windows)
 Core_WindowTitle_Linux = <App_name> <App_ver>-<Build_prefix> <Build_type> (LinuxQt)
 Update_note =[
-0.3.8 Update (Build Number 30, Build 491)
-Added Fourth tab
-Fix button not use native system
+nothings to show here
 ]

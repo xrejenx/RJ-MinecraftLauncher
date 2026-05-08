@@ -213,14 +213,8 @@ QString GetLatestUpdateNote() {
         }
     }
 
-    QString rawNote = bestPatchData.value("Update_note", "[No update notes available for this build.]");
+    QString rawNote = bestPatchData.value("Update_note", "No update notes available for this build.");
 
-    // Remove the starting '[' and ending ']' characters and trim whitespace
-    int start = rawNote.indexOf('[');
-    int end = rawNote.lastIndexOf(']');
-    if (start != -1 && end != -1 && end > start) {
-        return rawNote.mid(start + 1, end - start - 1).trimmed();
-    }
     return rawNote.trimmed();
 }
 

@@ -23,7 +23,6 @@ public:
     explicit SettingsDialog(QWidget *parent = nullptr) : QDialog(parent) {
         setWindowTitle("Settings");
         setFixedSize(450, 350);
-        setStyleSheet("QDialog { background-color: white; } QLabel { color: black; }");
 
         QVBoxLayout *mainLayout = new QVBoxLayout(this);
 

@@ -144,7 +144,6 @@ public:
     OfflineLoginDialog(QWidget *parent = nullptr) : QDialog(parent) {
         setWindowTitle("Add Offline Account");
         setFixedSize(350, 150);
-        setStyleSheet("background-color: white; color: black;");
         QVBoxLayout *layout = new QVBoxLayout(this);
         layout->addWidget(new QLabel("Username:"));
         userEdit = new QLineEdit(this);
@@ -169,7 +168,6 @@ void ShowAddOfflineAccountDialog(QWidget *parent) { OfflineLoginDialog(parent).e
 AddAccount::AddAccount(QWidget *parent) : QDialog(parent) {
     setWindowTitle("Account Manager");
     setFixedSize(400, 450);
-    setStyleSheet("background-color: white; color: black;");
 
     QVBoxLayout *layout = new QVBoxLayout(this);
 
@@ -187,7 +185,6 @@ AddAccount::AddAccount(QWidget *parent) : QDialog(parent) {
 
     // Account list box
     accountList = new QListWidget(this);
-    accountList->setStyleSheet("border: 1px solid #ccc; background: #f9f9f9; color: black;");
     layout->addWidget(accountList);
 
     // Connections for adding accounts

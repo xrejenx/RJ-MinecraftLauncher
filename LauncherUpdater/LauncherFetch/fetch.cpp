@@ -1,13 +1,14 @@
+#include <QString>
 #include <QNetworkAccessManager>
+#include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
-#include <QFile>
-#include <QTextStream>
-#include <QEventLoop>
 #include <QRegularExpression>
+#include <QEventLoop>
 
+// External dependencies
 extern int GetBuildNumber();
 void LogLauncherEvent(const QString &message);
 extern QString GetUpdateRepositoryUrl();
@@ -30,14 +31,30 @@ struct UpdateInfo {
     QList<ReleaseInfo> allReleases;
 };
 
+/**
+ * fetch.cpp - Fetches SHA-1 or SHA-256 hash strings from a remote URL.
+ */
+QString FetchRemoteHash(const QString &url) {
+    QNetworkAccessManager manager;
+    QEventLoop loop;
+    QNetworkReply *reply = manager.get(QNetworkRequest(QUrl(url)));
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
+
+    if (reply->error() == QNetworkReply::NoError) return QString(reply->readAll()).trimmed();
+    return QString();
+}
+
+/**
+ * CheckForUpdates - The new modern implementation using LauncherUpdater/LauncherFetch.
+ */
 UpdateInfo CheckForUpdates() {
     QNetworkAccessManager manager;
     QEventLoop loop;
 
-    // Construct the API URL using the centralized detector
     QUrl url(GetUpdateRepositoryUrl() + "/releases");
     QNetworkRequest req(url);
-    req.setHeader(QNetworkRequest::UserAgentHeader, "RJML-Updater");
+    req.setHeader(QNetworkRequest::UserAgentHeader, "RJML-Modern-Updater");
     
     QNetworkReply *reply = manager.get(req);
     QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -46,18 +63,14 @@ UpdateInfo CheckForUpdates() {
     UpdateInfo info;
     if (reply->error() == QNetworkReply::NoError) {
         QJsonArray releases = QJsonDocument::fromJson(reply->readAll()).array();
-        if (releases.isEmpty()) {
-            LogLauncherEvent("Update Check: No releases found on GitHub.");
-        }
         
         for (const QJsonValue &v : releases) {
             QJsonObject rel = v.toObject();
-            
             QString tagName = rel["tag_name"].toString();
-            int remote = tagName.remove(QRegularExpression("[^\\d]")).toInt();
+            int remoteBuild = tagName.remove(QRegularExpression("[^\\d]")).toInt();
 
             ReleaseInfo rInfo;
-            rInfo.buildNumber = remote;
+            rInfo.buildNumber = remoteBuild;
             rInfo.tagName = tagName;
             rInfo.description = rel["body"].toString();
             rInfo.isPreRelease = rel["prerelease"].toBool();
@@ -67,7 +80,6 @@ UpdateInfo CheckForUpdates() {
                 QJsonObject assetObj = a.toObject();
                 rInfo.assets.append({assetObj["name"].toString(), assetObj["browser_download_url"].toString(), assetObj["size"].toVariant().toLongLong()});
             }
-            
             info.allReleases.append(rInfo);
         }
     } else {

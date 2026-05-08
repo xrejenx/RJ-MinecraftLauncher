@@ -28,6 +28,14 @@ include_directories(
     Profile_java
     Profile_java/INSTANCES_MANAGER
     Windows
+    LauncherUpdater/Launcher
+    LauncherUpdater/Launcher/LauncherUrls
+    LauncherUpdater/LauncherDefender
+    LauncherUpdater/LauncherFetch
+    LauncherUpdater/LauncherSource
+    LauncherUpdater/LauncherUpdateCrashHandle
+    LauncherUpdater/LauncherDownload
+    LauncherUpdater/LauncherzipExtractor
 )
 
 # Made App
@@ -46,7 +54,6 @@ add_executable(WDLauncher
     CMakeSplashScreen/splashscreenlogic.cpp
     CMakeSplashScreen/assets/splashmanager.cpp
     CMakeSplashScreen/assets/splashcolor.cpp
-    CMakeSplashScreen/Fetch/splashfetchupdate.cpp
     CMakeSplashScreen/Fetch/fetchhelper.cpp
     CMakeSplashScreen/Downloader/splashdownloadmanager.cpp
     LTheme/theme.cpp
@@ -66,6 +73,23 @@ add_executable(WDLauncher
     Profile_java/INSTANCES_MANAGER/vanilla_mc_downloader.cpp
     Profile_java/INSTANCES_MANAGER/vanilla_mc_handle.cpp
     Windows/windows_resources.rc
+    LauncherUpdater/Launcher/LauncherUrls/urldetector.cpp
+    LauncherUpdater/Launcher/updater.cpp
+    LauncherUpdater/Launcher/updatecore.cpp
+    LauncherUpdater/LauncherDefender/shacheckv1.cpp
+    LauncherUpdater/LauncherDefender/shacheckv2.cpp
+    LauncherUpdater/LauncherDefender/shachecklocal.cpp
+    LauncherUpdater/LauncherFetch/fetch.cpp
+    LauncherUpdater/LauncherFetch/fetchurl.cpp
+    LauncherUpdater/LauncherFetch/fetchdetail.cpp
+    LauncherUpdater/LauncherFetch/fetchos.cpp
+    LauncherUpdater/LauncherSource/zipdetector.cpp
+    LauncherUpdater/LauncherUpdateCrashHandle/crash-handle.cpp
+    LauncherUpdater/LauncherUpdateCrashHandle/crash.cpp
+    LauncherUpdater/LauncherDownload/download.cpp
+    LauncherUpdater/LauncherDownload/downloadzip.cpp
+    LauncherUpdater/LauncherDownload/downloadpackage.cpp
+    LauncherUpdater/LauncherzipExtractor/downloadlib.cpp
 )
 
 # PatchHistory
