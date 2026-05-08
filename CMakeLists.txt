@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.20)
 # MADE IN THAILAND
-project(RJML LANGUAGES CXX)
+project(RJML VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Core Gui WebEngineWidgets Network)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Core Gui WebView QuickWidgets Network)
+set(APP_VERSION ${PROJECT_VERSION})
 
 # App Meta Details
 set(APP_NAME "RJMinecraftLauncher")
@@ -24,15 +25,6 @@ include_directories(
     Profile_java/INSTANCES_MANAGER
     Windows
 )
-
-# PatchHistory
-file(GLOB PATCH_FILES "LauncherPatch/PatchHistory/*.txt")
-if(PATCH_FILES)
-    qt_add_resources(WDLauncher "patches"
-        PREFIX "/patches"
-        FILES ${PATCH_FILES}
-    )
-endif()
 
 # Made App
 add_executable(WDLauncher
@@ -63,14 +55,33 @@ add_executable(WDLauncher
     Windows/windows_resources.rc
 )
 
+# PatchHistory
+# Use CONFIGURE_DEPENDS so adding new files triggers a rebuild
+file(GLOB PATCH_FILES CONFIGURE_DEPENDS "LauncherPatch/PatchHistory/*.txt")
+if(PATCH_FILES)
+    qt_add_resources(WDLauncher "patches"
+        PREFIX "/patches"
+        BASE "LauncherPatch/PatchHistory"
+        FILES ${PATCH_FILES}
+    )
+endif()
+
 # App name change from Codename To Production
 set_target_properties(WDLauncher PROPERTIES
     OUTPUT_NAME "${APP_SHORT_NAME}"
     PROJECT_LABEL "${APP_NAME}"
 )
 
+# Embed Metadata inside the executable binary via compile definitions
+target_compile_definitions(WDLauncher PRIVATE
+    LAUNCHER_APP_NAME="${APP_NAME}"
+    LAUNCHER_VERSION="${APP_VERSION}"
+    LAUNCHER_AUTHOR="${APP_AUTHOR}"
+    LAUNCHER_SHORT_NAME="${APP_SHORT_NAME}"
+)
+
 target_link_libraries(WDLauncher PRIVATE
-    Qt6::Widgets Qt6::Core Qt6::Gui Qt6::WebEngineWidgets Qt6::Network
+    Qt6::Widgets Qt6::Core Qt6::Gui Qt6::WebView Qt6::QuickWidgets Qt6::Network
 )
 
 # --- Windows Portable ---

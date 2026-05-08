@@ -45,14 +45,14 @@ void ThemeLoader::createDefaultThemes() {
                 theme["background"] = "#FFFFFF";
                 theme["text"] = "#000000";
                 theme["accent"] = "#F0F0F0";
-                theme["button"] = "#E1E1E1";
                 theme["border"] = "#CCCCCC";
+                theme["backgroundImage"] = "";
             } else {
                 theme["background"] = "#1E1E1E";
                 theme["text"] = "#D4D4D4";
                 theme["accent"] = "#2D2D2D";
-                theme["button"] = "#3C3C3C";
                 theme["border"] = "#454545";
+                theme["backgroundImage"] = "";
             }
             jsonFile.write(QJsonDocument(theme).toJson());
             jsonFile.close();
@@ -81,22 +81,51 @@ void ThemeLoader::applyTheme() {
     
     QString bg = colors["background"].toString();
     QString fg = colors["text"].toString();
-    QString btn = colors["button"].toString();
     QString acc = colors["accent"].toString();
     QString brd = colors["border"].toString();
+    QString img = colors["backgroundImage"].toString();
+
+    QString windowStyle = img.isEmpty() ? 
+        QString("QMainWindow { background-color: %1; }").arg(bg) :
+        QString("QMainWindow { border-image: url(%1) 0 0 0 0 stretch stretch; }").arg(img);
     
-    // Generate global Qt Style Sheet (QSS)
+    // Generate global Qt Style Sheet (QSS) - REMOVED QPushButton STYLING
     QString qss = QString(
-        "QWidget { background-color: %1; color: %2; }"
-        "QPushButton { background-color: %3; border: 1px solid %5; padding: 5px; color: %2; }"
-        "QPushButton:hover { background-color: %4; }"
-        "QTabWidget::pane { border: 1px solid %5; }"
-        "QTabBar::tab { background: %3; border: 1px solid %5; padding: 5px; color: %2; }"
-        "QTabBar::tab:selected { background: %1; border-bottom: none; }"
-        "QComboBox, QLineEdit, QPlainTextEdit { background-color: %1; border: 1px solid %5; color: %2; selection-background-color: %4; }"
-    ).arg(bg, fg, btn, acc, brd);
+        "%1" // Window background
+        "QWidget { color: %2; }"
+        "QLineEdit, QPlainTextEdit { background-color: rgba(255,255,255,150); border: 1px solid %3; color: black; }"
+    ).arg(windowStyle, fg, brd);
     
     qApp->setStyleSheet(qss);
+}
+
+QStringList ThemeLoader::getAvailableThemes() {
+    return QDir("LTheme/themes").entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+}
+
+QString ThemeLoader::getThemeImagePath(const QString &themeName) {
+    QFile file(QString("LTheme/themes/%1/theme%1.json").arg(themeName));
+    if (file.open(QIODevice::ReadOnly)) {
+        QJsonObject obj = QJsonDocument::fromJson(file.readAll()).object();
+        return obj["backgroundImage"].toString();
+    }
+    return "";
+}
+
+void ThemeLoader::createCustomTheme(const CustomThemeInfo &info) {
+    QString themePath = "LTheme/themes/" + info.name;
+    QDir().mkpath(themePath + "/ThemeImage");
+
+    QJsonObject theme;
+    theme["background"] = info.color;
+    theme["text"] = info.autoDetect ? "#000000" : "#FFFFFF";
+    theme["backgroundImage"] = info.imagePath;
+
+    QFile jsonFile(themePath + "/theme" + info.name + ".json");
+    if (jsonFile.open(QIODevice::WriteOnly)) {
+        jsonFile.write(QJsonDocument(theme).toJson());
+        jsonFile.close();
+    }
 }
 
 QString ThemeLoader::getSelectedTheme() {

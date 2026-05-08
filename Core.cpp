@@ -13,12 +13,14 @@
 #include <QMessageBox>
 #include <QTabWidget>
 #include <QJsonDocument>
+#include <QCloseEvent>
 #include <QJsonObject>
 #include <QScrollArea>
 #include <QFile>
 #include <QDir>
 #include <QFileInfo> // Ensure QFileInfo is included
 #include <QSettings>
+#include <QtWebView/QtWebView>
 #include <QProcess>
 #include "theme.h"
 #include "Core.h"
@@ -362,6 +364,15 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
 }
 
 MinecraftLauncher::~MinecraftLauncher() {}
+
+void MinecraftLauncher::closeEvent(QCloseEvent *event) {
+    // Ensure Minecraft is closed if the launcher is exited
+    if (mcProcess && mcProcess->state() != QProcess::NotRunning) {
+        mcProcess->terminate();
+        if (!mcProcess->waitForFinished(2000)) mcProcess->kill();
+    }
+    event->accept();
+}
 
 void MinecraftLauncher::updateUserLabel() {
     QFile file("LauncherSession.json");

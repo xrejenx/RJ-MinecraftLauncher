@@ -5,7 +5,9 @@
 #include <QLineEdit>
 #include <QDesktopServices>
 #include <QListWidget>
-#include <QWebEngineView>
+#include <QtWebView/QtWebView>
+#include <QQuickWidget>
+#include <QQuickItem>
 #include <QMessageBox>
 #include <QIODevice>
 #include <QFile>
@@ -62,10 +64,25 @@ public:
 
         QVBoxLayout *layout = new QVBoxLayout(this);
         
-        view = new QWebEngineView(this);
+        view = new QQuickWidget(this);
+        view->setResizeMode(QQuickWidget::SizeRootObjectToView);
+        
+        // We use a small QML string to wrap the WebView component
+        // This allows us to use QtWebView inside a QWidget-based layout
+        QByteArray qss = "import QtQuick; import QtWebView; "
+                         "WebView { "
+                         "  id: webView; "
+                         "  anchors.fill: parent; "
+                         "  onUrlChanged: root.urlChanged(url); "
+                         "  signal urlChanged(url newUrl); "
+                         "}";
+        
+        view->setSource(QUrl("data:text/plain;base64," + qss.toBase64()));
         layout->addWidget(view);
 
-        connect(view, &QWebEngineView::urlChanged, this, &MicrosoftLoginDialog::onUrlChanged);
+        if (view->rootObject()) {
+            connect(view->rootObject(), SIGNAL(urlChanged(QUrl)), this, SLOT(onUrlChanged(QUrl)));
+        }
 
         std::string authUrl = "https://login.live.com/oauth20_authorize.srf"
                               "?client_id=" + CLIENT_ID +
@@ -74,11 +91,13 @@ public:
                               "&scope=" + SCOPE +
                               "&prompt=select_account";
         
-        view->setUrl(QUrl(QString::fromStdString(authUrl)));
+        if (view->rootObject()) {
+            view->rootObject()->setProperty("url", QUrl(QString::fromStdString(authUrl)));
+        }
     }
 
 private:
-    QWebEngineView *view;
+    QQuickWidget *view;
 
     void onUrlChanged(const QUrl &url) {
         if (url.toString().startsWith(QString::fromStdString(REDIRECT_URI))) {

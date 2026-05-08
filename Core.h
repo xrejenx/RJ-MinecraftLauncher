@@ -12,6 +12,7 @@
 #include <QComboBox>
 #include <QPushButton>
 #include <QProcess>
+#include <QCloseEvent>
 
 /**
  * MinecraftLauncher - Main Window for the RJ Launcher.
@@ -25,6 +26,9 @@ public:
     ~MinecraftLauncher() override;
 
     void updateUserLabel();
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
 
 private:
     QLabel *welcomeLabel;

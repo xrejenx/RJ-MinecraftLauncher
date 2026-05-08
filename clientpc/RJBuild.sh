@@ -115,9 +115,11 @@ while true; do
             echo "[*] Installing dependencies..."
             if command -v apt >/dev/null 2>&1; then
                 sudo apt update
-                sudo apt install build-essential cmake qt6-base-dev qt6-webengine-dev g++-mingw-w64-i686 g++-mingw-w64-x86-64
+                sudo apt install build-essential cmake qt6-base-dev qt6-webview-dev qt6-declarative-dev g++-mingw-w64-i686 g++-mingw-w64-x86-64
             elif command -v dnf >/dev/null 2>&1; then
-                sudo dnf install cmake gcc-c++ qt6-qtbase-devel qt6-qtwebengine-devel mingw32-gcc-c++ mingw64-gcc-c++
+                sudo dnf install cmake gcc-c++ qt6-qtbase-devel qt6-qtwebview-devel qt6-qtdeclarative-devel mingw32-gcc-c++ mingw64-gcc-c++
+            elif command -v pacman >/dev/null 2>&1; then
+                sudo pacman -Syu --needed base-devel cmake qt6-base qt6-webview qt6-declarative mingw-w64-gcc
             elif command -v brew >/dev/null 2>&1; then
                 brew install cmake qt
             else

@@ -23,12 +23,11 @@ public:
     explicit SettingsDialog(QWidget *parent = nullptr) : QDialog(parent) {
         setWindowTitle("Settings");
         setFixedSize(450, 350);
-        setStyleSheet("QDialog { background-color: white; } QLabel { color: black; } QCheckBox { color: black; }");
+        setStyleSheet("QDialog { background-color: white; } QLabel { color: black; }");
 
         QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
         QTabWidget *tabWidget = new QTabWidget(this);
-        tabWidget->setStyleSheet("QTabBar::tab { color: black; }");
 
         // General Tab
         QWidget *generalTab = new QWidget();

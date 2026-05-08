@@ -1,0 +1,64 @@
+name: Multi-Platform Build (Win & Mac)
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # รันบนเครื่อง Windows ล่าสุด และ macOS ล่าสุด (Apple Silicon/M1)
+        os: [windows-latest, macos-latest]
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.6.0'
+        # Replace WebEngine with WebView and Quick modules
+        modules: 'qtwebview qtquickcontrols2 qtquickwidgets'
+
+    # --- ขั้นตอนสำหรับ Windows เท่านั้น ---
+    - name: Setup MSVC (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    # --- ขั้นตอนการรัน CMake ---
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build Project
+      run: cmake --build build --config Release
+
+    # --- การรวมไฟล์ (Deployment) ---
+    - name: Deploy Windows
+      if: runner.os == 'Windows'
+      run: |
+        windeployqt --release --out build/Release --no-translations build/RJML-Windows/WDLauncher.exe
+        # ย้ายไฟล์ไปไว้ในโฟลเดอร์เดียวเพื่อรอ Upload
+        mkdir output
+        cp -r build/RJML-Windows/* output/
+
+    - name: Deploy macOS
+      if: runner.os == 'macOS'
+      run: |
+        # ใช้ macdeployqt เพื่อสร้างไฟล์ .app ที่รันได้เลย
+        macdeployqt build/WDLauncher.app -qmldir=. -dmg
+        mkdir output
+        cp build/WDLauncher.dmg output/
+
+    # --- ส่งไฟล์ขึ้น GitHub ---
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: WDLauncher-${{ runner.os }}
+        path: output/

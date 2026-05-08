@@ -19,7 +19,7 @@ QString GetLauncherTitle() {
     QMap<QString, QString> bestPatchData;
 
     // Search in the internal program resources (compiled in)
-    QDirIterator it(":/PatchHistory", QStringList() << "*.txt", QDir::Files);
+    QDirIterator it(":/patches", QStringList() << "*.txt", QDir::Files);
 
     while (it.hasNext()) {
         QFile file(it.next());
@@ -61,7 +61,7 @@ QString GetLauncherTitle() {
     }
 
     if (maxBuild == -1 || bestPatchData.isEmpty()) {
-        return "RJ Launcher (Unknown Build)";
+        return QString("%1 %2").arg(LAUNCHER_APP_NAME, LAUNCHER_VERSION);
     }
 
     // 1. Get template based on Platform (Windows vs Linux)
@@ -73,8 +73,8 @@ QString GetLauncherTitle() {
 #endif
 
     // 2. Replace tokens from the patch data
-    title.replace("<App_name>", bestPatchData.value("App_name", "RJ Launcher"));
-    title.replace("<App_ver>", bestPatchData.value("App_ver", "0.0"));
+    title.replace("<App_name>", bestPatchData.value("App_name", LAUNCHER_APP_NAME));
+    title.replace("<App_ver>", bestPatchData.value("App_ver", LAUNCHER_VERSION));
     title.replace("<Build_prefix>", bestPatchData.value("Build_prefix", "000"));
     title.replace("<Build_type>", bestPatchData.value("Build_type", "Release"));
 
@@ -90,7 +90,7 @@ QString GetLatestUpdateNote() {
     int maxBuild = -1;
     QMap<QString, QString> bestPatchData;
 
-    QDirIterator it(":/PatchHistory", QStringList() << "*.txt", QDir::Files);
+    QDirIterator it(":/patches", QStringList() << "*.txt", QDir::Files);
     while (it.hasNext()) {
         QFile file(it.next());
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
@@ -138,9 +138,9 @@ QString GetLatestUpdateNote() {
 
 QString GetAppName() {
     int maxBuild = -1;
-    QString appName = "RJ Launcher";
+    QString appName = LAUNCHER_APP_NAME;
 
-    QDirIterator it(":/PatchHistory", QStringList() << "*.txt", QDir::Files);
+    QDirIterator it(":/patches", QStringList() << "*.txt", QDir::Files);
     while (it.hasNext()) {
         QFile file(it.next());
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
