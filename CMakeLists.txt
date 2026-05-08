@@ -19,6 +19,7 @@ include_directories(
     .
     Account
     Account/OFFLINE
+    CmakeLauncherIcon
     LTheme
     Profile
     Profile_java
@@ -36,6 +37,7 @@ add_executable(WDLauncher
     Account/OFFLINE/offline_handle.cpp
     Instances/instra_list.cpp
     LauncherPatch/version.cpp
+    CmakeLauncherIcon/icon.cpp
     LTheme/theme.cpp
     LTheme/Themeloader.cpp
     Profile/InstanceSettings.cpp
@@ -65,6 +67,15 @@ if(PATCH_FILES)
         FILES ${PATCH_FILES}
     )
 endif()
+
+# Launcher Icons based on Build Legit Prefixes
+qt_add_resources(WDLauncher "launcher_icons"
+    PREFIX "/launcher/icons"
+    FILES
+        "CmakeLauncherIcon/undev/icon.png"
+        "CmakeLauncherIcon/beta/icon.png"
+        "CmakeLauncherIcon/release/icon.png"
+)
 
 # App name change from Codename To Production
 set_target_properties(WDLauncher PROPERTIES

@@ -14,6 +14,46 @@
 // External logger interface
 void LogLauncherEvent(const QString &message);
 
+QString GetBuildTypePrefix() {
+    int maxBuild = -1;
+    QString prefix = "release"; // Default
+
+    QDirIterator it(":/patches", QStringList() << "*.txt", QDir::Files);
+    while (it.hasNext()) {
+        QFile file(it.next());
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
+
+        QTextStream in(&file);
+        int currentBuild = -1;
+        QString typePrefix;
+        QString buildPrefix;
+
+        while (!in.atEnd()) {
+            QString line = in.readLine().trimmed();
+            if (line.isEmpty()) continue;
+
+            int splitIdx = line.indexOf('=');
+            if (splitIdx != -1) {
+                QString key = line.left(splitIdx).trimmed();
+                QString value = line.mid(splitIdx + 1).trimmed();
+
+                if (key == "Build_type_prefix") typePrefix = value;
+                else if (key == "Build_prefix") buildPrefix = value;
+                else if (key == "Build_number") currentBuild = value.toInt();
+            }
+        }
+        
+        if (currentBuild > maxBuild) {
+            maxBuild = currentBuild;
+            QString found = !typePrefix.isEmpty() ? typePrefix : buildPrefix;
+            if (!found.isEmpty()) prefix = found;
+        }
+        file.close();
+    }
+    if (prefix.isEmpty()) prefix = "release";
+    return prefix;
+}
+
 QString GetLauncherTitle() {
     int maxBuild = -1;
     QMap<QString, QString> bestPatchData;
@@ -47,6 +87,19 @@ QString GetLauncherTitle() {
                     }
                     currentData[key] = block;
                 }
+            } else if (line.startsWith("set ")) {
+                // Handle Build Legit Mapping: set "undev" = UnderDevelopment
+                // Syntax: set "key" = value
+                int firstQuote = line.indexOf('"');
+                int secondQuote = line.indexOf('"', firstQuote + 1);
+                int eqIdx = line.indexOf('=', secondQuote + 1);
+
+                if (firstQuote != -1 && secondQuote != -1 && eqIdx != -1) {
+                    QString key = line.mid(firstQuote + 1, secondQuote - firstQuote - 1);
+                    QString value = line.mid(eqIdx + 1).trimmed();
+                    // We store these in the map using a "mapping_" prefix
+                    currentData["mapping_" + key] = value;
+                }
             }
         }
         file.close();
@@ -72,11 +125,23 @@ QString GetLauncherTitle() {
     title = bestPatchData.value("Core_WindowTitle_Linux", "<App_name> <App_ver> (LinuxQt)");
 #endif
 
+    // Resolve Build Legit Prefix Mapping
+    QString bVerPrefix = bestPatchData.value("Build_prefix", "000");
+    QString btPrefix = bestPatchData.value("Build_type_prefix", "release");
+
+    // Determine the full Build Type name
+    QString fullType = bestPatchData.value("Build_type");
+    if (fullType.isEmpty()) {
+        // Fallback to the 'set' mapping or the prefix itself
+        fullType = bestPatchData.value("mapping_" + btPrefix, btPrefix);
+    }
+
     // 2. Replace tokens from the patch data
     title.replace("<App_name>", bestPatchData.value("App_name", LAUNCHER_APP_NAME));
     title.replace("<App_ver>", bestPatchData.value("App_ver", LAUNCHER_VERSION));
-    title.replace("<Build_prefix>", bestPatchData.value("Build_prefix", "000"));
-    title.replace("<Build_type>", bestPatchData.value("Build_type", "Release"));
+    title.replace("<Build_prefix>", bVerPrefix);
+    title.replace("<Build_type_prefix>", btPrefix);
+    title.replace("<Build_type>", fullType);
 
     LogLauncherEvent(QString("Version Detected: %1 (Build %2) for %3")
                      .arg(bestPatchData.value("App_ver", "0.0"), 

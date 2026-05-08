@@ -21,6 +21,7 @@
 #include <QFileInfo> // Ensure QFileInfo is included
 #include <QSettings>
 #include <QtWebView/QtWebView>
+#include "icon.h"
 #include <QProcess>
 #include "theme.h"
 #include "Core.h"
@@ -59,6 +60,7 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     
     // Initialize Theme System
     ThemeLoader::initialize();
+    ApplyLauncherIcon(this);
 
     LogLauncherEvent("Launcher Core Initialized.");
     EnsureConsoleVisibility();

@@ -1,0 +1,12 @@
+Build legit //Build_type_prefix <--
+// Build legit used to set icons and how launcher manage Build patchs and chanels //
+// "Exmple Build_legit_prefix = ["undev"]" mean this build support only undev //
+// "Example Build_legit_prefix = ["undev"," beta", release"]" mean this build support undev beta and release //
+// "set" make sure to give what that prefix links to //
+// "Example set "undev" = UnderDevelopment" this mean undev = UnderDevelopment //
+// Build legit will talk to version.cpp with version can be set inside LauncherPatch/PatchHistory //
+
+Build_legit_prefix = ["undev", "beta", "release"]
+set "undev" = UnderDevelopment
+set "beta" = Beta
+set "release" = Release
