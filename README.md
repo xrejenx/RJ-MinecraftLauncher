@@ -5,6 +5,8 @@
 |--------------------------------------------|---------------------------------------------------------------|
 | Main Menu u31 0.3.8-507                    | Instance Create Menu u31 0.3.8-507                            |
 
+**Notes : Picture capture in linux-cachyOS**
+
 **This launcher is an unofficial launcher.**
 _It is not affiliated with, endorsed by, or supported by Mojang, Microsoft, or any other official Minecraft launcher developers.  
 Use at your own discretion._
