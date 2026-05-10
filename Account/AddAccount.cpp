@@ -5,7 +5,7 @@
 #include <QLineEdit>
 #include <QDesktopServices>
 #include <QListWidget>
-#include <QtWebView/QtWebView>
+#include "webview.h"
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QMessageBox>
@@ -63,12 +63,17 @@ public:
         setFixedSize(600, 600);
 
         QVBoxLayout *layout = new QVBoxLayout(this);
-        
+
+        view = nullptr;
+
+#ifdef Q_OS_WIN
+        // Windows-specific WebView2 implementation goes here.
+        // For now, we stub it to allow compilation without the QtWebView module.
+        layout->addWidget(new QLabel("Native WebView2 Controller (Edge Engine)", this));
+#else
         view = new QQuickWidget(this);
         view->setResizeMode(QQuickWidget::SizeRootObjectToView);
-        
-        // We use a small QML string to wrap the WebView component
-        // This allows us to use QtWebView inside a QWidget-based layout
+
         QByteArray qss = "import QtQuick; import QtWebView; "
                          "WebView { "
                          "  id: webView; "
@@ -76,13 +81,14 @@ public:
                          "  onUrlChanged: root.urlChanged(url); "
                          "  signal urlChanged(url newUrl); "
                          "}";
-        
+
         view->setSource(QUrl("data:text/plain;base64," + qss.toBase64()));
         layout->addWidget(view);
 
         if (view->rootObject()) {
             connect(view->rootObject(), SIGNAL(urlChanged(QUrl)), this, SLOT(onUrlChanged(QUrl)));
         }
+#endif
 
         std::string authUrl = "https://login.live.com/oauth20_authorize.srf"
                               "?client_id=" + CLIENT_ID +
@@ -91,7 +97,7 @@ public:
                               "&scope=" + SCOPE +
                               "&prompt=select_account";
         
-        if (view->rootObject()) {
+        if (view && view->rootObject()) {
             view->rootObject()->setProperty("url", QUrl(QString::fromStdString(authUrl)));
         }
     }
@@ -104,7 +110,7 @@ private:
             QUrlQuery query(url);
             QString code = query.queryItemValue("code");
             if (!code.isEmpty()) {
-                view->setEnabled(false); // Stop interaction while processing
+                if (view) view->setEnabled(false);
                 processTokenExchange(code);
             }
         }
@@ -132,7 +138,7 @@ private:
         connect(flow, &MicrosoftAuthFlow::failed, this, [this](const QString &err) {
             LogLauncherEvent("MSA Login Failed: " + err);
             QMessageBox::critical(this, "Login Failed", err);
-            view->setEnabled(true);
+            if (view) view->setEnabled(true);
         });
 
         flow->start(code);

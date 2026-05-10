@@ -1,0 +1,13 @@
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/WDLauncher.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/WDLauncher_other_files.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/RJLInstaller.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/MadeChanges.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/RJLInstaller_other_files.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/edit_cache.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/rebuild_cache.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/WDLauncher_autogen_timestamp_deps.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/WDLauncher_autogen.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/RJLInstaller_autogen_timestamp_deps.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/RJLInstaller_autogen.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/MadeChanges_autogen_timestamp_deps.dir
+C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/build/CMakeFiles/MadeChanges_autogen.dir

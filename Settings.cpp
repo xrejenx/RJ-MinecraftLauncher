@@ -8,6 +8,7 @@
 #include <QSettings>
 #include <QWidget>
 #include <QCoreApplication>
+#include "Core.h"
 
 /**
  * Internal Class Declarations (Headerless)
@@ -23,6 +24,9 @@ public:
     explicit SettingsDialog(QWidget *parent = nullptr) : QDialog(parent) {
         setWindowTitle("Settings");
         setFixedSize(450, 350);
+
+        QString dataRoot = MinecraftLauncher::getRJLDataPath();
+        QSettings settings(dataRoot + "launcher.ini", QSettings::IniFormat);
 
         QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
@@ -43,6 +47,19 @@ public:
 
         generalLayout->addWidget(debugHeader);
         generalLayout->addWidget(debugToggle);
+
+#ifdef Q_OS_WIN
+        QCheckBox *cmdToggle = new QCheckBox("Enable cmds", this);
+        cmdToggle->setChecked(settings.value("launcher/showConsole", false).toBool());
+        connect(cmdToggle, &QCheckBox::toggled, this, [](bool checked) {
+            QString dataRoot = MinecraftLauncher::getRJLDataPath();
+            QSettings s(dataRoot + "launcher.ini", QSettings::IniFormat);
+            s.setValue("launcher/showConsole", checked);
+            EnsureConsoleVisibility();
+        });
+        generalLayout->addWidget(cmdToggle);
+#endif
+
         generalLayout->addStretch();
 
         // Connection Tab
@@ -54,13 +71,13 @@ public:
         parallelLayout->addWidget(new QLabel("Parallel Downloads:", this));
         QSpinBox *parallelSpin = new QSpinBox(this);
         parallelSpin->setRange(1, 100);
-        QSettings settings(QCoreApplication::applicationDirPath() + "/launcher.ini", QSettings::IniFormat);
         parallelSpin->setValue(settings.value("connection/parallel", 20).toInt());
         parallelLayout->addWidget(parallelSpin);
         connLayout->addLayout(parallelLayout);
 
         connect(parallelSpin, qOverload<int>(&QSpinBox::valueChanged), [](int val) {
-            QSettings(QCoreApplication::applicationDirPath() + "/launcher.ini", QSettings::IniFormat).setValue("connection/parallel", val);
+            QString dataRoot = MinecraftLauncher::getRJLDataPath();
+            QSettings(dataRoot + "launcher.ini", QSettings::IniFormat).setValue("connection/parallel", val);
         });
 
         connLayout->addStretch();

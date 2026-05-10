@@ -3,6 +3,8 @@
 #include <QLabel>
 #include <QProgressBar>
 
+class QPaintEvent;
+
 class SplashScreen : public QDialog {
     Q_OBJECT
 public:
@@ -12,6 +14,9 @@ public:
     void setProgress(int value);
     void setLogo(const QPixmap &pixmap);
     void setBgColor(const QColor &color);
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     QLabel *titleLabel;

@@ -11,6 +11,16 @@
 // External dependencies
 extern int GetBuildNumber();
 void LogLauncherEvent(const QString &message);
+extern QString GetBuildTypePrefix(); // From version.cpp
+
+QString GetBuildTypePrefixShort() {
+#ifdef LAUNCHER_BUILD_TYPE_SHORT
+    return QString(LAUNCHER_BUILD_TYPE_SHORT);
+#else
+    return "r"; // Fallback to release
+#endif
+}
+
 extern QString GetUpdateRepositoryUrl();
 
 struct ReleaseAsset {
@@ -84,6 +94,59 @@ UpdateInfo CheckForUpdates() {
         }
     } else {
         LogLauncherEvent("Update Check Failed: " + reply->errorString());
+    }
+    return info;
+}
+
+/**
+ * CheckForInstallerUpdates - Specifically for the Installer's self-update check.
+ * Follows the RJInstallerWin64-<type><build>.exe naming and branch matching logic.
+ */
+UpdateInfo CheckForInstallerUpdates() {
+    QNetworkAccessManager manager;
+    QEventLoop loop;
+    QUrl url(GetUpdateRepositoryUrl() + "/releases");
+    QNetworkRequest req(url);
+    req.setHeader(QNetworkRequest::UserAgentHeader, "RJML-Installer-Updater");
+    
+    QNetworkReply *reply = manager.get(req);
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
+    
+    UpdateInfo info;
+    if (reply->error() == QNetworkReply::NoError) {
+        QJsonArray releases = QJsonDocument::fromJson(reply->readAll()).array();
+        
+        // Logic: u user only sees u installers, b sees b, r sees r.
+        QString typeKey = GetBuildTypePrefixShort().toLower();
+
+        for (const QJsonValue &v : releases) {
+            QJsonObject rel = v.toObject();
+            ReleaseInfo rInfo;
+            rInfo.tagName = rel["tag_name"].toString();
+            rInfo.buildNumber = rInfo.tagName.remove(QRegularExpression("[^\\d]")).toInt();
+
+            QJsonArray assetsJson = rel["assets"].toArray();
+            for (const auto &a : assetsJson) {
+                QJsonObject assetObj = a.toObject();
+                QString assetName = assetObj["name"].toString();
+
+                // Filter for: RJInstallerWin64-<type><number>.exe
+                QRegularExpression re("RJInstallerWin64-([ubr])(\\d+)\\.exe");
+                QRegularExpressionMatch match = re.match(assetName);
+                
+                if (match.hasMatch()) {
+                    QString foundType = match.captured(1);
+                    if (foundType == typeKey) {
+                        rInfo.assets.append({assetName, assetObj["browser_download_url"].toString(), assetObj["size"].toVariant().toLongLong()});
+                    }
+                }
+            }
+            
+            if (!rInfo.assets.isEmpty()) {
+                info.allReleases.append(rInfo);
+            }
+        }
     }
     return info;
 }

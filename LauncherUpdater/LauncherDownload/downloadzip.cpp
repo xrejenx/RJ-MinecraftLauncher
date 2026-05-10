@@ -16,6 +16,10 @@ void LogLauncherEvent(const QString &message);
 bool ExtractZipFile(const QString &zipFilePath, const QString &destinationPath) {
     QDir().mkpath(destinationPath);
     
+    // Convert to native Windows separators for external tools
+    QString nativeZip = QDir::toNativeSeparators(zipFilePath);
+    QString nativeDest = QDir::toNativeSeparators(destinationPath);
+
     QString extractorPath;
 #ifdef Q_OS_WIN
     extractorPath = QDir::current().absoluteFilePath("Lib/7za.exe");
@@ -26,9 +30,19 @@ bool ExtractZipFile(const QString &zipFilePath, const QString &destinationPath) 
 #endif
 
     QProcess extractProc;
-    // Use 7zip from Lib folder: x (extract), -o (output), -y (yes to all / overwrite)
-    extractProc.start(extractorPath, {"x", zipFilePath, "-o" + destinationPath, "-y"});
-    extractProc.waitForFinished(-1); 
+    if (QFile::exists(extractorPath)) {
+        // Use 7zip from Lib folder: x (extract), -o (output), -y (yes to all / overwrite)
+        extractProc.start(extractorPath, {"x", nativeZip, "-o" + nativeDest, "-y"});
+        extractProc.waitForFinished(-1); 
+    } else {
+        // Fallback for Installer: Use native OS commands if 7zip lib isn't present yet
+#ifdef Q_OS_WIN
+        extractProc.start("powershell", {"-NoProfile", "-Command", QString("Expand-Archive -Path '%1' -DestinationPath '%2' -Force").arg(nativeZip, nativeDest)});
+#else
+        extractProc.start("unzip", {"-o", nativeZip, "-d", nativeDest});
+#endif
+        extractProc.waitForFinished(-1);
+    }
     
     if (extractProc.exitStatus() == QProcess::NormalExit) {
         LogLauncherEvent("Successfully extracted " + zipFilePath);

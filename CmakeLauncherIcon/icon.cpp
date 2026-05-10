@@ -48,8 +48,8 @@ void ApplyLauncherIcon(QWidget* window) {
                 QPainter p(&final);
                 p.setRenderHint(QPainter::SmoothPixmapTransform);
                 
-                // Scale while maintaining the correct 3:2 aspect ratio
-                QPixmap scaled = pix.scaled(s - 2, s - 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                // Scale to fill the slot while maintaining aspect ratio (No padding for VSCode-like look)
+                QPixmap scaled = pix.scaled(s, s, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                 
                 // Center the logo in the square to avoid "tiny" offset looks
                 int x = (s - scaled.width()) / 2;
@@ -59,10 +59,10 @@ void ApplyLauncherIcon(QWidget* window) {
                 return final;
             };
 
-            // 3. Multi-Size: Generate standard resolutions (16 to 256) so the 
+            // 3. Multi-Size: Generate standard resolutions (16 to 1024) so the 
             // Taskbar and Titlebar don't look blurry or "tiny".
             QIcon icon;
-            int standardSizes[] = {16, 24, 32, 48, 64, 128, 256};
+            int standardSizes[] = {16, 24, 32, 48, 64, 96, 128, 256, 512, 1024};
             for (int s : standardSizes) {
                 icon.addPixmap(createStandardIcon(s));
             }

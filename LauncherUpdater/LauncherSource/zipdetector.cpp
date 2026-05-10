@@ -7,7 +7,15 @@ QStringList DetectDownloadedPackages() {
     if (!sourceDir.exists()) sourceDir.mkpath(".");
     
     QStringList packages;
-    QFileInfoList list = sourceDir.entryInfoList(QStringList() << "*.zip" << "*.tar.gz", QDir::Files);
+    QStringList filters;
+
+#ifdef Q_OS_WIN
+    filters << "*.exe";
+#else
+    filters << "*.zip" << "*.tar.gz";
+#endif
+
+    QFileInfoList list = sourceDir.entryInfoList(filters, QDir::Files);
     
     for (const QFileInfo &info : list) {
         packages << info.fileName();

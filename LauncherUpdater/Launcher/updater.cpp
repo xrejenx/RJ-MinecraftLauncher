@@ -4,7 +4,13 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
+#include <QDirIterator>
+#include "Core.h"
 #include "LauncherUpdater/LauncherDownload/downloadzip.h"
+
+extern int GetBuildNumber(); // From version.cpp
+extern QString GetBuildTypePrefix(); // From version.cpp
+extern QString GetBuildTypePrefixShort(); // From LauncherFetch/fetch.cpp
 
 /**
  * updater.cpp - Handles the final user confirmation and state management for updates.
@@ -18,53 +24,59 @@ bool PromptForUpdateInstallation(const QString &version) {
 }
 
 void TriggerLocalUpdate(const QString &localZipName) {
-    if (PromptForUpdateInstallation(localZipName)) {
-        QString zipPath = QDir::current().absoluteFilePath("LauncherUpdater/LauncherSource/" + localZipName);
-        QString extractDirRoot = QDir::current().absoluteFilePath("LauncherUpdater/LauncherSource/ExtractedUpdate/");
-        
-        // Clean and prepare extraction directory
-        QDir(extractDirRoot).removeRecursively();
-        QDir().mkpath(extractDirRoot);
-
-        if (ExtractZipFile(zipPath, extractDirRoot)) {
-            QString appPath = QCoreApplication::applicationFilePath();
-            QString appDir = QCoreApplication::applicationDirPath();
-            QString extractDir = extractDirRoot;
-
-            // Handle nested folders (e.g. ZIP contains RJML-v1/binary instead of just binary)
-            QDir checkDir(extractDir);
-            QStringList entries = checkDir.entryList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot);
-            if (entries.size() == 1 && QFileInfo(extractDir + "/" + entries[0]).isDir()) {
-                extractDir = QDir(extractDir + "/" + entries[0]).absolutePath();
-            }
-            
-            QString program;
-            QStringList arguments;
+    if (!PromptForUpdateInstallation(localZipName)) return;
+    QString dataRoot = MinecraftLauncher::getRJLDataPath();
 
 #ifdef Q_OS_WIN
-            program = "cmd.exe";
-            // Use xcopy /i to handle directory creation if needed
-            arguments << "/c" << QString("timeout /t 2 > nul && move /y \"%1\" \"%1.bak\" && xcopy /s /e /y /q /i \"%2\\*\" \"%3\" && start \"\" \"%1\"")
-                .arg(QDir::toNativeSeparators(appPath), 
-                     QDir::toNativeSeparators(extractDir), 
-                     QDir::toNativeSeparators(appDir));
-#elif defined(Q_OS_MAC)
-            program = "/bin/sh";
-            // Unlink original binary, copy contents, set permissions, and open
-            arguments << "-c" << QString("sleep 2 && mv -f \"%1\" \"%1.old\" && cp -Rf \"%2/.\" \"%3/\" && chmod +x \"%1\" && open \"%1\"")
-                .arg(appPath, extractDir, appDir);
-#else // Linux (and others)
-            program = "/bin/sh";
-            // Unlink original binary, copy contents (merging root), set permissions, and relaunch
-            arguments << "-c" << QString("sleep 2 && mv -f \"%1\" \"%1.old\" && cp -rf \"%2/.\" \"%3/\" && chmod +x \"%1\" && \"%1\" &")
-                .arg(appPath, extractDir, appDir);
-#endif
-            
-            if (QProcess::startDetached(program, arguments)) {
-                QCoreApplication::quit();
-            } else {
-                QMessageBox::critical(nullptr, "Update Error", "Failed to start the update handover process.");
-            }
+    // On Windows, the localZipName is now actually the installer executable.
+    // We locate it in the Source folder and run it directly.
+    QString installerPath = dataRoot + "LauncherUpdater/LauncherSource/" + localZipName;
+    
+    if (QProcess::startDetached(installerPath)) {
+        QCoreApplication::quit(); // Close current launcher to allow file replacement
+    } else {
+        QMessageBox::critical(nullptr, "Update Error", "Failed to launch the update installer: " + localZipName);
+    }
+#else
+    // For Linux/macOS, continue with the existing in-place update logic
+    QString zipPath = dataRoot + "LauncherUpdater/LauncherSource/" + localZipName;
+    QString extractDirRoot = dataRoot + "LauncherUpdater/LauncherSource/ExtractedUpdate/";
+    
+    QDir(extractDirRoot).removeRecursively();
+    QDir().mkpath(extractDirRoot);
+
+    if (ExtractZipFile(zipPath, extractDirRoot)) {
+        QString appPath = QCoreApplication::applicationFilePath();
+        QString appDir = QCoreApplication::applicationDirPath();
+        QString extractDir = extractDirRoot;
+
+        QDirIterator it(extractDirRoot, QStringList() << "*.txt", QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            QFile::remove(it.next());
+        }
+        
+        int currentBuild = GetBuildNumber();
+        QString shortPrefix = GetBuildTypePrefixShort().toLower();
+        QString backupName = QString("RJML.%1%2.old").arg(shortPrefix).arg(currentBuild);
+        QString backupPath = dataRoot + "LauncherUpdater/LauncherSource/old/" + backupName;
+        QDir().mkpath(dataRoot + "LauncherUpdater/LauncherSource/old/");
+
+        QDir checkDir(extractDir);
+        QStringList entries = checkDir.entryList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot);
+        if (entries.size() == 1 && QFileInfo(extractDir + "/" + entries[0]).isDir()) {
+            extractDir = QDir(extractDir + "/" + entries[0]).absolutePath();
+        }
+        
+        QString program = "/bin/sh";
+        QStringList arguments;
+        arguments << "-c" << QString("sleep 2 && mv -f \"%1\" \"%4\" && cp -rf \"%2/.\" \"%3/\" && chmod +x \"%1\" && \"%1\" &")
+            .arg(appPath, extractDir, appDir, backupPath);
+        
+        if (QProcess::startDetached(program, arguments)) {
+            QCoreApplication::quit();
+        } else {
+            QMessageBox::critical(nullptr, "Update Error", "Failed to start the update handover process.");
         }
     }
+#endif
 }

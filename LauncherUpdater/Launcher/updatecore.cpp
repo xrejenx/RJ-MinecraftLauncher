@@ -11,6 +11,9 @@
 #include <QSplitter>
 #include <QProgressBar>
 #include <QThread>
+#include <QLineEdit>
+#include <QCheckBox>
+#include <QFrame>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QUrl>
@@ -18,6 +21,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <functional>
+#include "Core.h"
 #include "LauncherUpdater/LauncherDownload/downloadzip.h"
 
 namespace FetchOS {
@@ -25,6 +29,8 @@ namespace FetchOS {
 }
 
 QStringList DetectDownloadedPackages(); // Forward from zipdetector.cpp
+QStringList DetectRollbackPackages();   // Forward from rollback.cpp
+void TriggerRollback(const QString &oldFileName); // Forward from rollback.cpp
 void TriggerLocalUpdate(const QString &localZipName); // From updater.cpp
 void LogLauncherEvent(const QString &message); // From ConsoleOutput.cpp
 
@@ -120,9 +126,10 @@ private slots:
             libUrl = "https://raw.githubusercontent.com/xrejenx/RJ-MinecraftLauncher/RJL/assets/7zip/Linux7zip/7za";
             destName = "7za";
         }
-
-        QDir().mkpath("Lib");
-        QString destPath = QDir::current().absoluteFilePath("Lib/" + destName);
+        
+        QString dataRoot = MinecraftLauncher::getRJLDataPath();
+        QDir().mkpath(dataRoot + "Lib");
+        QString destPath = dataRoot + "Lib/" + destName;
 
         DownloadTask *task = new DownloadTask(libUrl, destPath);
         QThread *thread = new QThread(this);
@@ -218,10 +225,37 @@ public:
         // Tab 3: Downloaded Packages (Local ZIP detector)
         QWidget *pkgTab = new QWidget();
         QVBoxLayout *pkgLayout = new QVBoxLayout(pkgTab);
+        
+        // Center Top Search Box
+        QLineEdit *searchPkg = new QLineEdit(this);
+        searchPkg->setPlaceholderText("Search packages...");
+        searchPkg->setFixedWidth(250);
+        QHBoxLayout *searchPkgLayout = new QHBoxLayout();
+        searchPkgLayout->addStretch();
+        searchPkgLayout->addWidget(searchPkg);
+        searchPkgLayout->addStretch();
+        pkgLayout->addLayout(searchPkgLayout);
 
         QHBoxLayout *pkgHeader = new QHBoxLayout();
         pkgHeader->addWidget(new QLabel("Available Offline Packages", this));
         pkgHeader->addStretch();
+
+        QListWidget *localZips = new QListWidget(this);
+        pkgLayout->addWidget(localZips);
+
+        // Filter logic for Tab 3
+        auto applyPkgFilter = [localZips, searchPkg]() {
+            QString text = searchPkg->text();
+            for (int i = 0; i < localZips->count(); ++i) {
+                QListWidgetItem *item = localZips->item(i);
+                QWidget *w = localZips->itemWidget(item);
+                if (w) {
+                    QLabel *lbl = w->findChild<QLabel*>();
+                    item->setHidden(!lbl->text().contains(text, Qt::CaseInsensitive));
+                }
+            }
+        };
+        connect(searchPkg, &QLineEdit::textChanged, applyPkgFilter);
 
         QLabel *libStatusLabel = new QLabel(this);
         libStatusLabel->setStyleSheet("font-weight: bold;");
@@ -248,24 +282,173 @@ public:
         pkgHeader->addWidget(getLibBtn);
         pkgLayout->addLayout(pkgHeader);
 
-        QListWidget *localZips = new QListWidget();
-        localZips->addItems(DetectDownloadedPackages());
-        pkgLayout->addWidget(localZips);
-        
-        QPushButton *btnInstallLocal = new QPushButton("Apply Offline Update");
-        connect(btnInstallLocal, &QPushButton::clicked, [localZips]() {
-            if (auto item = localZips->currentItem()) {
-                TriggerLocalUpdate(item->text());
+        QPushButton *btnInstallLocal = new QPushButton("Apply Offline Update", this);
+        btnInstallLocal->setEnabled(false);
+        pkgLayout->addWidget(btnInstallLocal);
+
+        // Custom setup logic for Tab 3 packages
+        auto refreshTab3 = [localZips, btnInstallLocal, applyPkgFilter]() {
+            localZips->clear();
+            btnInstallLocal->setText("Apply Offline Update");
+            btnInstallLocal->setStyleSheet("");
+            btnInstallLocal->setEnabled(false);
+
+            for (const QString &pkg : DetectDownloadedPackages()) {
+                QListWidgetItem *item = new QListWidgetItem(localZips);
+                item->setSizeHint(QSize(0, 38));
+
+                QWidget *row = new QWidget();
+                QHBoxLayout *rowLayout = new QHBoxLayout(row);
+                rowLayout->setContentsMargins(10, 2, 10, 2);
+
+                QLabel *nameLbl = new QLabel(pkg, row);
+                rowLayout->addWidget(nameLbl, 1);
+
+                QPushButton *insBtn = new QPushButton("Install", row);
+                insBtn->setFixedWidth(65);
+                insBtn->setVisible(false);
+                rowLayout->addWidget(insBtn);
+
+                QPushButton *delBtn = new QPushButton("Delete", row);
+                delBtn->setFixedWidth(65);
+                delBtn->setVisible(false); // Only visible when selected
+                rowLayout->addWidget(delBtn);
+
+                QFrame *sep = new QFrame(row);
+                sep->setFrameShape(QFrame::VLine);
+                sep->setFrameShadow(QFrame::Sunken);
+                rowLayout->addWidget(sep);
+
+                QCheckBox *chk = new QCheckBox(row);
+                rowLayout->addWidget(chk);
+
+                localZips->setItemWidget(item, row);
+
+                // Action: Direct Install
+                QObject::connect(insBtn, &QPushButton::clicked, [pkg]() {
+                    TriggerLocalUpdate(pkg);
+                });
+
+                // Action: Direct delete on the line
+                QObject::connect(delBtn, &QPushButton::clicked, [pkg, localZips, btnInstallLocal]() {
+                    if (QMessageBox::question(nullptr, "Delete", "Remove " + pkg + "?") == QMessageBox::Yes) {
+                        QString dataRoot = MinecraftLauncher::getRJLDataPath();
+                        QFile::remove(dataRoot + "LauncherUpdater/LauncherSource/" + pkg);
+                        for (int i = 0; i < localZips->count(); ++i) {
+                            if (QWidget *w = localZips->itemWidget(localZips->item(i))) {
+                                if (w->findChild<QLabel*>()->text() == pkg) {
+                                    delete localZips->takeItem(i);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Action: Monitor checkbox for bulk delete mode
+                QObject::connect(chk, &QCheckBox::checkStateChanged, [localZips, btnInstallLocal](Qt::CheckState) {
+                    int count = 0;
+                    for (int i = 0; i < localZips->count(); ++i) {
+                        QWidget *w = localZips->itemWidget(localZips->item(i));
+                        if (w && w->findChild<QCheckBox*>()->isChecked()) count++;
+                    }
+                    if (count >= 2) {
+                        btnInstallLocal->setText(QString("Delete Selected Packages (%1)").arg(count));
+                        btnInstallLocal->setStyleSheet("color: white; background-color: #D32F2F; font-weight: bold;");
+                        btnInstallLocal->setEnabled(true);
+                    } else {
+                        btnInstallLocal->setText("Apply Offline Update");
+                        btnInstallLocal->setStyleSheet("");
+                        btnInstallLocal->setEnabled(localZips->currentItem() != nullptr);
+                    }
+                });
+            }
+            applyPkgFilter();
+        };
+
+        // Handle individual row button visibility based on selection
+        connect(localZips, &QListWidget::currentItemChanged, [localZips, btnInstallLocal](QListWidgetItem *curr, QListWidgetItem *prev) {
+            if (prev) if (QWidget *w = localZips->itemWidget(prev)) {
+                for (auto *btn : w->findChildren<QPushButton*>()) btn->hide();
+            }
+            if (curr) if (QWidget *w = localZips->itemWidget(curr)) {
+                for (auto *btn : w->findChildren<QPushButton*>()) btn->show();
+            }
+            
+            if (!btnInstallLocal->text().startsWith("Delete Selected")) {
+                btnInstallLocal->setEnabled(curr != nullptr);
             }
         });
 
-        pkgLayout->addWidget(btnInstallLocal);
+        // Handle main button logic (Apply vs Bulk Delete)
+        connect(btnInstallLocal, &QPushButton::clicked, [localZips, refreshTab3, btnInstallLocal]() {
+            if (btnInstallLocal->text().startsWith("Delete Selected")) {
+                if (QMessageBox::warning(nullptr, "Confirm Bulk Delete", "Delete all selected ZIP files?", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+                    QString dataRoot = MinecraftLauncher::getRJLDataPath();
+                    for (int i = 0; i < localZips->count(); ++i) {
+                        QWidget *w = localZips->itemWidget(localZips->item(i));
+                        if (w && w->findChild<QCheckBox*>()->isChecked()) {
+                            QFile::remove(dataRoot + "LauncherUpdater/LauncherSource/" + w->findChild<QLabel*>()->text());
+                        }
+                    }
+                    refreshTab3();
+                }
+            } else {
+                if (auto *item = localZips->currentItem()) {
+                    if (QWidget *w = localZips->itemWidget(item))
+                        TriggerLocalUpdate(w->findChild<QLabel*>()->text());
+                }
+            }
+        });
+
+        refreshTab3();
         updateTabs->addTab(pkgTab, "Downloaded Packages");
 
-        connect(updateTabs, &QTabWidget::currentChanged, [updateTabs, localZips](int index) {
+        // Tab 4: Rollback Update
+        QWidget *rollbackTab = new QWidget();
+        QVBoxLayout *rollLayout = new QVBoxLayout(rollbackTab);
+
+        // Center Top Search Box
+        QLineEdit *searchRoll = new QLineEdit(this);
+        searchRoll->setPlaceholderText("Search backups...");
+        searchRoll->setFixedWidth(250);
+        QHBoxLayout *searchRollLayout = new QHBoxLayout();
+        searchRollLayout->addStretch();
+        searchRollLayout->addWidget(searchRoll);
+        searchRollLayout->addStretch();
+        rollLayout->addLayout(searchRollLayout);
+        
+        rollLayout->addWidget(new QLabel("Select a version to rollback to"));
+        QListWidget *rollList = new QListWidget();
+        rollLayout->addWidget(rollList);
+
+        // Filter logic for Tab 4
+        auto applyRollFilter = [rollList, searchRoll]() {
+            QString text = searchRoll->text();
+            for (int i = 0; i < rollList->count(); ++i) {
+                QListWidgetItem *item = rollList->item(i);
+                item->setHidden(!item->text().contains(text, Qt::CaseInsensitive));
+            }
+        };
+        connect(searchRoll, &QLineEdit::textChanged, applyRollFilter);
+        
+        QPushButton *btnRollback = new QPushButton("Rollback to Selected Version");
+        connect(btnRollback, &QPushButton::clicked, [rollList]() {
+            if (auto item = rollList->currentItem()) {
+                TriggerRollback(item->text());
+            }
+        });
+        rollLayout->addWidget(btnRollback);
+        updateTabs->addTab(rollbackTab, "Rollback Update");
+
+        connect(updateTabs, &QTabWidget::currentChanged, [updateTabs, localZips, rollList, refreshTab3, applyRollFilter](int index) {
             if (updateTabs->tabText(index) == "Downloaded Packages") {
-                localZips->clear();
-                localZips->addItems(DetectDownloadedPackages());
+                refreshTab3();
+            }
+            else if (updateTabs->tabText(index) == "Rollback Update") {
+                rollList->clear();
+                rollList->addItems(DetectRollbackPackages());
+                applyRollFilter();
             }
         });
 

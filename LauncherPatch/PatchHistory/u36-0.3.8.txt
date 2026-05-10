@@ -1,0 +1,26 @@
+App_name = RJ Launcher
+App_ver = 0.3.8
+Build_prefix = 531
+Build_type = Underdevelopment
+Build_type_prefix = undev
+Build_type_prefix_short = u
+Build_date = 05:57 (UTC+7) at 05/07/2026
+Build_number = 35
+Cmakeiconconfig = <Build_type_prefix>
+Core_WindowTitle_Windows = <App_name> <App_ver>-<Build_prefix> <Build_type> (Windows)
+Core_WindowTitle_Linux = <App_name> <App_ver>-<Build_prefix> <Build_type> (LinuxQt)
+
+// Windows RC Details
+CompanyName = Rezen Developer
+FileDescripton = RJ Launcher Installer
+FileVersion = <App_ver>
+InternalName = RJInstaller
+OriginalFilename = RJInstaller.exe
+ProductName = RJ Launcher
+ProductVersion = <App_ver>i<Build_type_prefix_short>
+//
+
+
+Update_note =[
+nothings to show here
+]

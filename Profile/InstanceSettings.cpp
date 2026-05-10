@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QDesktopServices>
 #include <QUrl>
+#include "Core.h"
 
 class InstanceSettingsDialog : public QDialog {
     Q_OBJECT
@@ -25,11 +26,12 @@ public:
         // Main Tab
         auto *mainTab = new QWidget();
         auto *mainLayout = new QVBoxLayout(mainTab);
+        QString dataRoot = MinecraftLauncher::getRJLDataPath();
 
         mainLayout->addWidget(new QLabel("<b>Launch Arguments:</b>"));
         argsEdit = new QTextEdit();
         
-        m_path = "Instances/" + instanceName + "/args.txt";
+        m_path = dataRoot + "Instances/" + instanceName + "/args.txt";
         QFile file(m_path);
         if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             argsEdit->setPlainText(file.readAll());
@@ -38,7 +40,7 @@ public:
         mainLayout->addWidget(argsEdit);
 
         auto *btnLayout = new QHBoxLayout();
-        auto *openFolderBtn = new QPushButton("Open Instance Folder");
+        auto *openFolderBtn = new QPushButton("Open Folder");
         auto *saveBtn = new QPushButton("Save");
         btnLayout->addWidget(openFolderBtn);
         btnLayout->addStretch();
@@ -46,7 +48,7 @@ public:
         mainLayout->addLayout(btnLayout);
 
         connect(openFolderBtn, &QPushButton::clicked, this, [this]() {
-            QDesktopServices::openUrl(QUrl::fromLocalFile(QDir::current().absoluteFilePath("Instances/" + m_instanceName)));
+            QDesktopServices::openUrl(QUrl::fromLocalFile(MinecraftLauncher::getRJLDataPath() + "Instances/" + m_instanceName));
         });
 
         connect(saveBtn, &QPushButton::clicked, this, [this]() {

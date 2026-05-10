@@ -120,18 +120,54 @@ QVariantMap FetchVanillaMetadata(const QString &versionId) {
     
     // Libraries (LWJGL, etc)
     QStringList libUrls;
+    QStringList nativeUrls;
     QJsonArray libs = root["libraries"].toArray();
+
+    QString osName;
+#ifdef Q_OS_WIN
+    osName = "windows";
+#elif defined(Q_OS_MAC)
+    osName = "osx";
+#else
+    osName = "linux";
+#endif
+
     for (const auto &l : libs) {
         QJsonObject libObj = l.toObject();
+        
+        // Rule check for OS compatibility
+        bool allowed = true;
+        if (libObj.contains("rules")) {
+            allowed = false;
+            QJsonArray rules = libObj["rules"].toArray();
+            for (const auto &r : rules) {
+                QJsonObject rule = r.toObject();
+                QString action = rule["action"].toString();
+                if (rule.contains("os")) {
+                    if (rule["os"].toObject()["name"].toString() == osName) allowed = (action == "allow");
+                } else {
+                    allowed = (action == "allow");
+                }
+            }
+        }
+        if (!allowed) continue;
+
         if (libObj.contains("downloads")) {
-            QJsonObject artifact = libObj["downloads"].toObject()["artifact"].toObject();
-            QString url = artifact["url"].toString();
-            if (!url.isEmpty()) {
-                libUrls << url;
+            QJsonObject downloads = libObj["downloads"].toObject();
+            if (downloads.contains("artifact")) {
+                libUrls << downloads["artifact"].toObject()["url"].toString();
+            }
+            // Handle natives classifiers for dynamic LWJGL versions
+            if (libObj.contains("natives") && downloads.contains("classifiers")) {
+                QString nativeKey = libObj["natives"].toObject()[osName].toString();
+                if (downloads["classifiers"].toObject().contains(nativeKey)) {
+                    nativeUrls << downloads["classifiers"].toObject()[nativeKey].toObject()["url"].toString();
+                }
             }
         }
     }
     result["libraries"] = libUrls;
+    result["natives"] = nativeUrls;
     result["mainClass"] = root["mainClass"].toString();
 
     return result;

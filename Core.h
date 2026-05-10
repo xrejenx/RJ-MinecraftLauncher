@@ -26,11 +26,14 @@ public:
     ~MinecraftLauncher() override;
 
     void updateUserLabel();
+    static QString getRJLDataPath();
+    void launchMinecraft();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
 
 private:
+    void setupUI();
     QLabel *welcomeLabel;
     QTabWidget *tabs;
     QPlainTextEdit *gameConsole;

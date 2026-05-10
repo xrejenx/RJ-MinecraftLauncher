@@ -3,25 +3,29 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QFormLayout> // Added for QFormLayout
-#include <QLineEdit>   // Added for QLineEdit
-#include <QPushButton> // Added for QPushButton
-#include <QHBoxLayout> // Added for QHBoxLayout
-#include <QComboBox>   // Added for QComboBox
-#include <QFileDialog> // Added for QFileDialog
-#include <QFileInfo>   // Added for QFileInfo
+#include <QFormLayout>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QHBoxLayout>
+#include <QComboBox>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QTextStream>
 #include <QDebug>
+#include "Core.h"
+#include "desktoptheme.h"
 
 void ThemeLoader::initialize() {
+    QString dataRoot = MinecraftLauncher::getRJLDataPath();
     // Ensure the folder structure exists
-    QDir().mkpath("LTheme/themes");
+    QDir().mkpath(dataRoot + "LTheme/themes");
     
-    QFile configFile("LTheme/theme.json");
+    QFile configFile(dataRoot + "LTheme/theme.json");
     if (!configFile.exists()) {
         if (configFile.open(QIODevice::WriteOnly)) {
             QJsonObject obj;
             obj["selectedTheme"] = "LLight";
+            obj["selectedTheme"] = getAutoThemeName();
             configFile.write(QJsonDocument(obj).toJson());
             configFile.close();
         }
@@ -32,9 +36,10 @@ void ThemeLoader::initialize() {
 }
 
 void ThemeLoader::createDefaultThemes() {
+    QString dataRoot = MinecraftLauncher::getRJLDataPath();
     QStringList defaults = {"LLight", "DDark"};
     for (const QString &name : defaults) {
-        QString path = "LTheme/themes/" + name;
+        QString path = dataRoot + "LTheme/themes/" + name;
         QDir().mkpath(path + "/ThemeImage");
         
         // Create the JSON color configuration
@@ -70,8 +75,9 @@ void ThemeLoader::createDefaultThemes() {
 }
 
 void ThemeLoader::applyTheme() {
+    QString dataRoot = MinecraftLauncher::getRJLDataPath();
     QString selected = getSelectedTheme();
-    QString jsonPath = QString("LTheme/themes/%1/theme%1.json").arg(selected);
+    QString jsonPath = dataRoot + QString("LTheme/themes/%1/theme%1.json").arg(selected);
     
     QFile file(jsonPath);
     if (!file.open(QIODevice::ReadOnly)) return;
@@ -93,11 +99,11 @@ void ThemeLoader::applyTheme() {
 }
 
 QStringList ThemeLoader::getAvailableThemes() {
-    return QDir("LTheme/themes").entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    return QDir(MinecraftLauncher::getRJLDataPath() + "LTheme/themes").entryList(QDir::Dirs | QDir::NoDotAndDotDot);
 }
 
 QString ThemeLoader::getThemeImagePath(const QString &themeName) {
-    QFile file(QString("LTheme/themes/%1/theme%1.json").arg(themeName));
+    QFile file(MinecraftLauncher::getRJLDataPath() + QString("LTheme/themes/%1/theme%1.json").arg(themeName));
     if (file.open(QIODevice::ReadOnly)) {
         QJsonObject obj = QJsonDocument::fromJson(file.readAll()).object();
         return obj["backgroundImage"].toString();
@@ -106,7 +112,8 @@ QString ThemeLoader::getThemeImagePath(const QString &themeName) {
 }
 
 void ThemeLoader::createCustomTheme(const CustomThemeInfo &info) {
-    QString themePath = "LTheme/themes/" + info.name;
+    QString dataRoot = MinecraftLauncher::getRJLDataPath();
+    QString themePath = dataRoot + "LTheme/themes/" + info.name;
     QDir().mkpath(themePath + "/ThemeImage");
 
     QJsonObject theme;
@@ -122,7 +129,8 @@ void ThemeLoader::createCustomTheme(const CustomThemeInfo &info) {
 }
 
 QString ThemeLoader::getSelectedTheme() {
-    QFile file("LTheme/theme.json");
+    QString dataRoot = MinecraftLauncher::getRJLDataPath();
+    QFile file(dataRoot + "LTheme/theme.json");
     if (file.open(QIODevice::ReadOnly)) {
         QJsonObject obj = QJsonDocument::fromJson(file.readAll()).object();
         return obj["selectedTheme"].toString("LLight");
@@ -131,7 +139,8 @@ QString ThemeLoader::getSelectedTheme() {
 }
 
 void ThemeLoader::setSelectedTheme(const QString &themeName) {
-    QFile file("LTheme/theme.json");
+    QString dataRoot = MinecraftLauncher::getRJLDataPath();
+    QFile file(dataRoot + "LTheme/theme.json");
     if (file.open(QIODevice::ReadWrite)) {
         QJsonObject obj = QJsonDocument::fromJson(file.readAll()).object();
         obj["selectedTheme"] = themeName;
@@ -140,74 +149,4 @@ void ThemeLoader::setSelectedTheme(const QString &themeName) {
         file.resize(file.pos());
         file.close();
     }
-}
-
-void ShowCreateThemeDialog(QWidget *parent, const std::function<void()> &onCreated) {
-    QDialog dlg(parent);
-    dlg.setWindowTitle("Create New Theme");
-    QFormLayout *layout = new QFormLayout(&dlg);
-
-    QLineEdit *nameEdit = new QLineEdit(&dlg);
-    QLineEdit *imgEdit = new QLineEdit(&dlg);
-    QPushButton *browseBtn = new QPushButton("Browse", &dlg);
-    
-    QHBoxLayout *imgLayout = new QHBoxLayout();
-    imgLayout->addWidget(imgEdit);
-    imgLayout->addWidget(browseBtn);
-
-    QComboBox *colorMode = new QComboBox(&dlg);
-    colorMode->addItems({"Auto-Detect from Picture", "Solid Color"});
-
-    QPushButton *doneBtn = new QPushButton("Done", &dlg);
-
-    layout->addRow("Theme Name:", nameEdit);
-    layout->addRow("Background Image:", imgLayout);
-    layout->addRow("Color Set:", colorMode);
-    layout->addWidget(doneBtn);
-
-    QObject::connect(browseBtn, &QPushButton::clicked, [&]() {
-        QString path = QFileDialog::getOpenFileName(&dlg, "Select Image", "", "Images (*.png *.jpg)");
-        if (!path.isEmpty()) imgEdit->setText(path);
-    });
-
-    QObject::connect(doneBtn, &QPushButton::clicked, [&]() {
-        if (nameEdit->text().isEmpty()) return;
-        
-        QString themeName = nameEdit->text();
-        QString themePath = "LTheme/themes/" + themeName;
-        QDir().mkpath(themePath + "/ThemeImage");
-
-        // Copy image if selected
-        QString finalImgPath = "";
-        if (!imgEdit->text().isEmpty()) {
-            QString ext = QFileInfo(imgEdit->text()).suffix();
-            finalImgPath = themePath + "/ThemeImage/background." + ext;
-            QFile::copy(imgEdit->text(), finalImgPath);
-        }
-
-        QJsonObject theme;
-        theme["background"] = "#FFFFFF";
-        theme["text"] = (colorMode->currentIndex() == 0) ? "#000000" : "#FFFFFF";
-        theme["accent"] = "#A0A0A0";
-        theme["border"] = "#505050";
-        theme["backgroundImage"] = finalImgPath;
-
-        QFile jsonFile(themePath + "/theme" + themeName + ".json");
-        if (jsonFile.open(QIODevice::WriteOnly)) {
-            jsonFile.write(QJsonDocument(theme).toJson());
-            jsonFile.close();
-        }
-
-        QFile cfgFile(themePath + "/theme" + themeName + ".cfg");
-        if (cfgFile.open(QIODevice::WriteOnly)) {
-            QTextStream out(&cfgFile);
-            out << "theme_name=" << themeName << "\n";
-            cfgFile.close();
-        }
-
-        onCreated();
-        dlg.accept();
-    });
-
-    dlg.exec();
 }

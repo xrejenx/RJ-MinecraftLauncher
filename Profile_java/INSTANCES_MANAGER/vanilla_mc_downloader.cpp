@@ -10,12 +10,14 @@
 #include <QDir>
 #include <QTimer>
 #include <QSettings>
+#include <QProcess>
 #include <QMessageBox>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QDebug>
 #include <QCoreApplication>
+#include "Core.h"
 
 // External logger interface
 void LogLauncherEvent(const QString &message);
@@ -24,9 +26,9 @@ void ShowJavaDownloadMenu(QWidget *parent = nullptr); // From Profile/Java_downl
 void AutoDownloadJavaHeadless(const QString &javaName, QProgressDialog *externalProgress = nullptr);
 int GetRequiredJavaMajorVersion(const QString &versionId, int metadataMajor = 0); // From instance-javaRequirement.cpp
 QString GetAppName();
-// Forward declarations for LWJGL functions (from Profile_java/lgwl-lib.cpp)
+// Forward declarations for LWJGL functions (from Profile_java/lwjgl-lib.cpp)
 QString GetLwglNativesPath(const QString &mcVersion);
-// Forward declarations for LWJGL artifact path and download (from Profile_java/lgwl-lib.cpp)
+// Forward declarations for LWJGL artifact path and download (from Profile_java/lwjgl-lib.cpp)
 QString GetLwglArtifactLocalPath(const QString &mcVersion, const QString &remoteUrl);
 void downloadAndExtractLwgl(const QString &url, const QString &name, const QString &ext, const QString &targetDir); // For internal use in lgwl-lib.cpp
 /**
@@ -37,7 +39,8 @@ void DownloadVanillaInstance(const QVariantMap &metadata, const QString &targetD
     // --- PHASE 0: JAVA COMPATIBILITY CHECK ---
     LogLauncherEvent("Initiating pre-download Java verification...");
     bool javaExists = false;
-    QSettings s(QCoreApplication::applicationDirPath() + "/launcher.ini", QSettings::IniFormat);
+    QString dataRoot = MinecraftLauncher::getRJLDataPath();
+    QSettings s(dataRoot + "launcher.ini", QSettings::IniFormat);
     QString savedPath = s.value("java/path", "").toString();
 
     // Get centralized Java version requirement
@@ -48,7 +51,7 @@ void DownloadVanillaInstance(const QVariantMap &metadata, const QString &targetD
     if (!savedPath.isEmpty() && savedPath != "java" && QFile::exists(savedPath)) {
         javaExists = true;
     } else {
-        QDir javaDir("javas");
+        QDir javaDir(dataRoot + "javas");
         if (javaDir.exists()) {
             QStringList subDirs = javaDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
             for (const QString &dir : subDirs) {
@@ -71,7 +74,7 @@ void DownloadVanillaInstance(const QVariantMap &metadata, const QString &targetD
         
         // Final check after download: Look for the specific version directory
         bool specificJavaFound = false;
-        QDir checkDir("javas");
+        QDir checkDir(dataRoot + "javas");
         for (const QString &d : checkDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
             if (d.contains(QString::number(major))) {
                 specificJavaFound = true;
@@ -87,18 +90,19 @@ void DownloadVanillaInstance(const QVariantMap &metadata, const QString &targetD
     // --- PHASE 1: MINECRAFT DOWNLOAD ---
     QString clientUrl = metadata["clientUrl"].toString();
     QStringList libraries = metadata["libraries"].toStringList();
+    QStringList natives = metadata["natives"].toStringList();
     QString assetIndexId = metadata["assetIndexId"].toString();
     QString assetIndexUrl = metadata["assetIndexUrl"].toString();
     QJsonArray assetObjects = metadata["assetObjects"].toJsonArray();
     
-    int totalFiles = 1 + libraries.size() + 1 + assetObjects.size(); // Client JAR + Libraries + Asset Index JSON + Asset Objects
+    int totalFiles = 1 + libraries.size() + natives.size() + 1 + assetObjects.size();
     QProgressDialog progress("Initializing installation...", "Cancel", 0, totalFiles);
     progress.setWindowTitle(GetAppName());
     progress.setWindowModality(Qt::WindowModal);
     progress.setMinimumDuration(0);
     progress.setValue(0);
 
-    QSettings settings(QCoreApplication::applicationDirPath() + "/launcher.ini", QSettings::IniFormat);
+    QSettings settings(dataRoot + "launcher.ini", QSettings::IniFormat);
     int maxParallel = settings.value("connection/parallel", 20).toInt();
 
     QNetworkAccessManager manager;
@@ -117,7 +121,7 @@ void DownloadVanillaInstance(const QVariantMap &metadata, const QString &targetD
 
     // Add Asset Index JSON
     if (!assetIndexUrl.isEmpty() && !assetIndexId.isEmpty()) {
-        QString assetIndexPath = QDir::current().absoluteFilePath(QString("Assets/%1/indexes/%2.json").arg(instanceName, assetIndexId));
+        QString assetIndexPath = dataRoot + QString("Assets/%1/indexes/%2.json").arg(instanceName, assetIndexId);
         queue.append(assetIndexUrl);
         urlToPath[assetIndexUrl] = assetIndexPath;
     }
@@ -126,21 +130,23 @@ void DownloadVanillaInstance(const QVariantMap &metadata, const QString &targetD
     for (const QJsonValue &val : assetObjects) {
         QJsonObject obj = val.toObject();
         QString url = obj["url"].toString();
-        QString path = QDir::current().absoluteFilePath(QString("Assets/%1/%2").arg(instanceName, obj["path"].toString()));
+        QString path = dataRoot + QString("Assets/%1/%2").arg(instanceName, obj["path"].toString());
         if (!url.isEmpty() && !path.isEmpty()) {
             queue.append(url);
             urlToPath[url] = path;
         }
     }
 
-    // --- MODIFIED SECTION START ---
-    // LWJGL is now managed by lgwl-lib.cpp directly when GetLwglNativesPath is called.
-    // No need to add LWJGL artifacts to this download queue directly unless they are part of the main manifest.
     for (const QString &url : libraries) {
         queue.append(url);
-        // --- MODIFIED SECTION START ---
         urlToPath[url] = GetLwglArtifactLocalPath(versionId, url);
-        // --- MODIFIED SECTION END ---
+    }
+
+    // Add natives to queue and target instance-specific natives directory
+    QString instanceNativesDir = targetDirPath + "/natives";
+    for (const QString &url : natives) {
+        queue.append(url);
+        urlToPath[url] = instanceNativesDir + "/" + url.section('/', -1);
     }
 
     auto startNext = [&]() {
@@ -169,12 +175,24 @@ void DownloadVanillaInstance(const QVariantMap &metadata, const QString &targetD
                 completedCount++;
                 
                 if (reply->error() == QNetworkReply::NoError) {
-                    // Ensure target directory exists for the library
                     QDir().mkpath(QFileInfo(dest).path());
                     QFile file(dest);
                     if (file.open(QIODevice::WriteOnly)) {
                         file.write(reply->readAll());
                         file.close();
+
+                        // If it's a native library, extract it immediately to the natives folder
+                        if (dest.startsWith(instanceNativesDir)) {
+                            progress.setLabelText("Extracting: " + label);
+                            QProcess extractProcess;
+#ifdef Q_OS_WIN
+                            extractProcess.start("powershell", {"-Command", QString("Expand-Archive -Path '%1' -DestinationPath '%2' -Force").arg(dest, instanceNativesDir)});
+#else
+                            extractProcess.start("unzip", {"-o", dest, "-d", instanceNativesDir});
+#endif
+                            extractProcess.waitForFinished();
+                            QFile::remove(dest); // Cleanup artifact after extraction
+                        }
                     }
                 }
                 

@@ -9,11 +9,13 @@
 #include <QDir>
 #include <QSpinBox>
 #include <QTabWidget>
+#include <QCheckBox>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QInputDialog>
 #include <QDesktopServices>
 #include <QUrl>
+#include "Core.h"
 
 void ShowJavaDownloadMenu(QWidget *parent);
 void LogLauncherEvent(const QString &message);
@@ -25,8 +27,9 @@ public:
     explicit JavaSettingsDialog(QWidget *parent = nullptr) : QDialog(parent) {
         setWindowTitle(GetLauncherTitle() + " - Java Settings");
         setFixedSize(500, 350);
+        QString dataRoot = MinecraftLauncher::getRJLDataPath();
         auto *mainLayout = new QVBoxLayout(this);
-        QSettings settings("RJLauncher", "WDLauncher");
+        QSettings settings(dataRoot + "launcher.ini", QSettings::IniFormat);
 
         auto *tabs = new QTabWidget(this);
 
@@ -75,6 +78,15 @@ public:
 
         tabs->addTab(tweaksTab, "Java Tweaks");
 
+        // --- Tab 3: Theme Settings ---
+        QWidget *themeSettingsTab = new QWidget();
+        QVBoxLayout *themeSettingsLayout = new QVBoxLayout(themeSettingsTab);
+        autoThemeCheck = new QCheckBox("Disable Auto Theme Detection", this);
+        autoThemeCheck->setChecked(settings.value("theme/disableAutoColor", false).toBool());
+        themeSettingsLayout->addWidget(autoThemeCheck);
+        themeSettingsLayout->addStretch();
+        tabs->addTab(themeSettingsTab, "Theme Settings");
+
         mainLayout->addWidget(tabs);
 
         auto *saveBtn = new QPushButton("Save");
@@ -86,11 +98,11 @@ public:
         });
 
         connect(openFolderBtn, &QPushButton::clicked, this, []() {
-            QDesktopServices::openUrl(QUrl::fromLocalFile(QDir::current().absoluteFilePath("javas")));
+            QDesktopServices::openUrl(QUrl::fromLocalFile(MinecraftLauncher::getRJLDataPath() + "javas"));
         });
 
         connect(detectBtn, &QPushButton::clicked, this, [this]() {
-            QDir javaDir("javas");
+            QDir javaDir(MinecraftLauncher::getRJLDataPath() + "javas");
             QStringList subDirs = javaDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
             
             if (subDirs.isEmpty()) {
@@ -104,7 +116,7 @@ public:
                                                        subDirs, 0, false, &ok);
             
             if (ok && !selectedDir.isEmpty()) {
-                QString dirPath = QDir::current().absoluteFilePath("javas/" + selectedDir);
+                QString dirPath = MinecraftLauncher::getRJLDataPath() + "javas/" + selectedDir;
                 QString binPath;
 #ifdef Q_OS_WIN
                 binPath = QDir(dirPath).absoluteFilePath("bin/java.exe");
@@ -122,9 +134,10 @@ public:
         });
 
         connect(saveBtn, &QPushButton::clicked, this, [this, ramSpin]() {
-            QSettings s("RJLauncher", "WDLauncher");
+            QSettings s(MinecraftLauncher::getRJLDataPath() + "launcher.ini", QSettings::IniFormat);
             s.setValue("java/path", javaPathCombo->currentData().toString());
             s.setValue("java/ram", ramSpin->value());
+            s.setValue("theme/disableAutoColor", autoThemeCheck->isChecked());
             this->accept();
         });
     }
@@ -132,6 +145,7 @@ public:
 private:
     QComboBox *javaPathCombo;
     QLineEdit *pathEdit;
+    QCheckBox *autoThemeCheck;
 
     void refreshJavaList(const QString &currentSavedPath = "") {
         javaPathCombo->clear();
@@ -139,16 +153,17 @@ private:
         // 1. Add System Default
         javaPathCombo->addItem("System Default (java)", "java");
 
+        QString dataRoot = MinecraftLauncher::getRJLDataPath();
         // 2. Scan javas directory for custom installs
-        QDir javaDir("javas");
+        QDir javaDir(dataRoot + "javas");
         if (javaDir.exists()) {
             QStringList subDirs = javaDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
             for (const QString &dir : subDirs) {
                 QString binPath;
 #ifdef Q_OS_WIN
-                binPath = QDir::current().absoluteFilePath("javas/" + dir + "/bin/java.exe");
+                binPath = QDir(dataRoot + "javas/" + dir).absoluteFilePath("bin/java.exe");
 #else
-                binPath = QDir::current().absoluteFilePath("javas/" + dir + "/bin/java");
+                binPath = QDir(dataRoot + "javas/" + dir).absoluteFilePath("bin/java");
 #endif
                 if (QFile::exists(binPath)) {
                     javaPathCombo->addItem(dir, binPath);

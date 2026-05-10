@@ -24,7 +24,7 @@
 #include <QTimer>
 #include <QSettings>
 #include <functional>
-#include <QtWebView/QtWebView>
+#include "webview.h"
 #include "icon.h"
 #include <QProcess>
 #include "theme.h"
@@ -60,6 +60,7 @@ QDialog* CreateDownloadProgressDialog(const QList<QPair<QString, QString>>& file
 void ConnectDownloadDialogSignals(QDialog *dialog, QObject *receiver, 
                                   std::function<void(bool, const QList<QString>&)> finishedCb, 
                                   std::function<void(const QList<QString>&)> cancelledCb);
+void TriggerLocalUpdate(const QString &localZipName); // From updater.cpp
 
 #include "LauncherUpdater/LauncherDownload/downloadzip.h" // For ExtractZipFile
 
@@ -74,10 +75,10 @@ QString GetAppName();      // From LauncherPatch/version.cpp
 QString GetLatestUpdateNote();
 int GetRequiredJavaMajorVersion(const QString &versionId, int metadataMajor = 0); // From instance-javaRequirement.cpp
 QWidget* CreateModernUpdateTab(QWidget *parent); // From updatecore.cpp
-QString GetLwglVersionForMc(const QString &mcVersion); // From lgwl-handlelib.cpp
+QString GetLwglVersionForMc(const QString &mcVersion); // From lwjglhandle.cpp
 void SyncExtractionLibrary(); // From downloadlib.cpp
 void PopulateInstanceList(QComboBox *comboBox); // Changed from QListWidget
-QString GetLwglNativesPath(const QString &mcVersion); // Forward declaration for LWJGL path
+QString GetLwglNativesPath(const QString &mcVersion); // Forward declaration for LWJGL path (from Profile_java/lwjgl-lib.cpp)
 
 /**
  * Core.cpp - RJ Launcher (Base)
@@ -89,13 +90,21 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle(GetLauncherTitle());
     setFixedSize(850, 600);
     
-    // Ensure important folders exist on launch
-    QDir().mkpath("javas");
-    QDir().mkpath("Lib");
-    QDir().mkpath("Instances");
-    QDir().mkpath("userdata");
-    QDir().mkpath("Assets");
-    QDir().mkpath("icons");
+    // Define Data Root for Windows vs other platforms
+#ifdef Q_OS_WIN
+    QString dataRoot = "C:/RJLauncherData/";
+#else
+    QString dataRoot = "";
+#endif
+
+    // Ensure important folders exist on launch in the data root
+    QDir().mkpath(dataRoot + "javas");
+    QDir().mkpath(dataRoot + "Lib");
+    QDir().mkpath(dataRoot + "Instances");
+    QDir().mkpath(dataRoot + "userdata");
+    QDir().mkpath(dataRoot + "LauncherUpdater/LauncherSource/old");
+    QDir().mkpath(dataRoot + "Assets");
+    QDir().mkpath(dataRoot + "icons");
     
     // Initialize Theme System
     ThemeLoader::initialize();
@@ -432,7 +441,7 @@ void MinecraftLauncher::updateUserLabel() {
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     QDir::setCurrent(QCoreApplication::applicationDirPath());
-    QtWebView::initialize();
+    RJMLWebView::initialize();
 
     app.setApplicationName(GetAppName());
 
@@ -488,7 +497,7 @@ int main(int argc, char *argv[]) {
                     for (const QVariant &v : assets) {
                         QVariantMap map = v.toMap();
                         QListWidgetItem *fItem = new QListWidgetItem(map["name"].toString(), fileList);
-                        fItem->setCheckState(Qt::Checked);
+                        fItem->setCheckState(Qt::Unchecked);
                         fItem->setData(Qt::UserRole, map["url"].toString());
                     }
                     installBtn->setEnabled(true);
@@ -525,17 +534,26 @@ int main(int argc, char *argv[]) {
                 QDialog *downloadDialog = CreateDownloadProgressDialog(filesToDownload, &w);
                 ConnectDownloadDialogSignals(downloadDialog, &w, [buildNumber, &w, downloadDialog](bool success, const QList<QString>& downloadedFiles) {
                     if (success && !downloadedFiles.isEmpty()) {
-                        // Prompt to install
-                        auto reply = QMessageBox::question(&w, "Download Complete",
-                                                           "All selected files downloaded successfully. Do you want to install them now?",
-                                                           QMessageBox::Yes | QMessageBox::No);
-                        if (reply == QMessageBox::Yes) {
-                            for (const QString& filePath : downloadedFiles) {
-                                ExtractZipFile(filePath, "."); // Extract to current directory (launcher root)
+                        // Use the unified handover logic from updater.cpp instead of manual extraction.
+                        QString mainZip;
+                        for (const QString& path : downloadedFiles) {
+                            QFileInfo fi(path);
+#ifdef Q_OS_WIN
+                            // On Windows, identify the installer executable
+                            if (fi.suffix().toLower() == "exe") {
+#else
+                            // On Linux/Mac, identify the update zip
+                            if (fi.suffix().toLower() == "zip") {
+#endif
+                                mainZip = QFileInfo(path).fileName();
+                                break;
                             }
-                            QMessageBox::information(&w, "Installation Complete", "Update installed. Please restart the launcher.");
+                        }
+
+                        if (!mainZip.isEmpty()) {
+                            TriggerLocalUpdate(mainZip);
                         } else {
-                            QMessageBox::information(&w, "Installation Cancelled", "Downloaded files are available in the 'Downloaded Packages' tab.");
+                            QMessageBox::information(&w, "Download Complete", "Package downloaded. You can apply the update from the 'Downloaded Packages' tab.");
                         }
                     } else if (!success) {
                         QMessageBox::critical(&w, "Download Failed", "Some files failed to download. Please check logs.");

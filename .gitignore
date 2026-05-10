@@ -1,10 +1,6 @@
-Build/
-build/
-*.user
-.vscode/
-.idea/
-cmake-build-*/
-/assets
-/readme
-/Need To Be Fix
-/Theme_Add_Please
+# Ignore the assets folder
+assets/
+
+# Ignore this two folders because they are not needed for the project
+Need To Be Fix/
+Theme Add Please/

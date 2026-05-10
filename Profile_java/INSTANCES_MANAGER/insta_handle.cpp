@@ -21,6 +21,7 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include "Core.h"
 #include <filesystem>
 #include <fstream>
 
@@ -163,7 +164,7 @@ public:
         javaArgsEdit->setPlaceholderText("Custom JVM Arguments...");
 
         instPathEdit = new QLineEdit(this);
-        instPathEdit->setPlaceholderText("e.g. Instances/MyInstance");
+        instPathEdit->setPlaceholderText("e.g. C:/RJLData/Instances/MyInstance");
 
         moreLayout->addRow("PermGen:", permGenEdit);
         moreLayout->addRow("Java Args (CMD):", javaArgsEdit);
@@ -238,7 +239,7 @@ public:
         });
 
         connect(nameEdit, &QLineEdit::textChanged, this, [this](const QString &text){
-            if (!instPathEdit->isModified()) instPathEdit->setText("Instances/" + text);
+            if (!instPathEdit->isModified()) instPathEdit->setText(MinecraftLauncher::getRJLDataPath() + "Instances/" + text);
             updateNavButtons();
         });
 
@@ -355,7 +356,8 @@ void ShowInstanceWizard(QWidget *parent) {
         if (isPack) name = "Downloaded_Modpack"; 
 
         QString targetDirPath = wizard.getInstancePath();
-        if (targetDirPath.isEmpty()) targetDirPath = "Instances/" + name;
+        QString dataRoot = MinecraftLauncher::getRJLDataPath();
+        if (targetDirPath.isEmpty() || targetDirPath.startsWith("Instances/")) targetDirPath = dataRoot + "Instances/" + name;
 
         fs::create_directories(targetDirPath.toStdString());
         
