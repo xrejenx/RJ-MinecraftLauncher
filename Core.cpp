@@ -6,6 +6,9 @@
 #include <QHBoxLayout>
 #include <QPalette>
 #include <QLabel>
+#include <QFormLayout>
+#include <QLineEdit>
+#include <QFileDialog>
 #include <QPlainTextEdit>
 #include <QListWidget>
 #include <QDialog>
@@ -80,6 +83,47 @@ void SyncExtractionLibrary(); // From downloadlib.cpp
 void PopulateInstanceList(QComboBox *comboBox); // Changed from QListWidget
 QString GetLwglNativesPath(const QString &mcVersion); // Forward declaration for LWJGL path (from Profile_java/lwjgl-lib.cpp)
 
+void ShowCreateThemeDialog(QWidget *parent, const std::function<void()> &onCreated) {
+    QDialog dlg(parent);
+    dlg.setWindowTitle("Create Custom Theme");
+    QFormLayout *layout = new QFormLayout(&dlg);
+
+    QLineEdit *nameEdit = new QLineEdit(&dlg);
+    QLineEdit *colorEdit = new QLineEdit("#ffffff", &dlg);
+    QLineEdit *pathEdit = new QLineEdit(&dlg);
+    QPushButton *browseBtn = new QPushButton("Browse...", &dlg);
+
+    QHBoxLayout *pathLayout = new QHBoxLayout();
+    pathLayout->addWidget(pathEdit);
+    pathLayout->addWidget(browseBtn);
+
+    layout->addRow("Theme Name:", nameEdit);
+    layout->addRow("Background Color:", colorEdit);
+    layout->addRow("Background Image:", pathLayout);
+
+    QObject::connect(browseBtn, &QPushButton::clicked, [&]() {
+        QString path = QFileDialog::getOpenFileName(parent, "Select Image", "", "Images (*.png *.jpg *.jpeg)");
+        if (!path.isEmpty()) pathEdit->setText(path);
+    });
+
+    QPushButton *okBtn = new QPushButton("Create", &dlg);
+    layout->addWidget(okBtn);
+
+    QObject::connect(okBtn, &QPushButton::clicked, [&]() {
+        if (nameEdit->text().isEmpty()) return;
+        CustomThemeInfo info;
+        info.name = nameEdit->text();
+        info.color = colorEdit->text();
+        info.imagePath = pathEdit->text();
+        info.autoDetect = true;
+        ThemeLoader::createCustomTheme(info);
+        if (onCreated) onCreated();
+        dlg.accept();
+    });
+
+    dlg.exec();
+}
+
 /**
  * Core.cpp - RJ Launcher (Base)
  * 
@@ -90,12 +134,7 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle(GetLauncherTitle());
     setFixedSize(850, 600);
     
-    // Define Data Root for Windows vs other platforms
-#ifdef Q_OS_WIN
-    QString dataRoot = "C:/RJLauncherData/";
-#else
-    QString dataRoot = "";
-#endif
+    QString dataRoot = getRJLDataPath();
 
     // Ensure important folders exist on launch in the data root
     QDir().mkpath(dataRoot + "javas");
@@ -218,9 +257,7 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
         updateUserLabel();
     });
     connect(editProfile, &QPushButton::clicked, this, [this]() {
-        ShowJavaProfileWindow(this);
-        PopulateInstanceList(profileComboBox); // Refresh list after dialog closes
-        updateUserLabel();
+        ShowInstanceSettings(this, profileComboBox->currentText());
     });
 
     // mcProcess is already a member, no need to redeclare
@@ -436,6 +473,109 @@ void MinecraftLauncher::updateUserLabel() {
         }
         file.close();
     }
+}
+
+int main(int argc, char *argv[]) {
+    QApplication app(argc, argv);
+    QDir::setCurrent(QCoreApplication::applicationDirPath());
+    RJMLWebView::initialize();
+
+    app.setApplicationName(GetAppName());
+    app.setQuitOnLastWindowClosed(false);
+
+    if (!SplashScreenLogic::run()) {
+        return 0;
+    }
+
+    MinecraftLauncher w;
+    w.show();
+    w.showNormal();
+
+    QTimer::singleShot(100, &w, [&w]() {
+        w.raise();
+        w.activateWindow();
+    });
+
+    QString dataRoot = MinecraftLauncher::getRJLDataPath();
+    QTimer::singleShot(500, [&w, dataRoot]() {
+        QApplication::setQuitOnLastWindowClosed(true);
+
+        QListWidget* list = w.findChild<QListWidget*>("updateList");
+        QTextBrowser* details = w.findChild<QTextBrowser*>("updateDetails");
+        QPushButton* installBtn = w.findChild<QPushButton*>("installUpdateBtn");
+        QTextBrowser* newsBrowser = w.findChild<QTextBrowser*>("newsBrowser");
+        QListWidget* fileList = w.findChild<QListWidget*>("fileList");
+        QLabel* currentVerLabel = w.findChild<QLabel*>("currentVerLabel");
+
+        if (currentVerLabel) {
+            currentVerLabel->setText("Current Installed Build: " + QString::number(GetBuildNumber()));
+        }
+
+        if (list && details && installBtn && fileList) {
+            QObject::connect(list, &QListWidget::itemSelectionChanged, [list, details, installBtn, fileList]() {
+                QListWidgetItem *item = list->currentItem();
+                if (item) {
+                    details->setMarkdown(item->data(Qt::UserRole).toString());
+                    fileList->clear();
+                    QVariantList assets = item->data(Qt::UserRole + 1).toList();
+                    for (const QVariant &v : assets) {
+                        QVariantMap map = v.toMap();
+                        QListWidgetItem *fItem = new QListWidgetItem(map["name"].toString(), fileList);
+                        fItem->setCheckState(Qt::Unchecked);
+                        fItem->setData(Qt::UserRole, map["url"].toString());
+                    }
+                    installBtn->setEnabled(true);
+                } else {
+                    installBtn->setEnabled(false);
+                }
+            });
+
+            QObject::connect(installBtn, &QPushButton::clicked, [&w, list, fileList, dataRoot]() {
+                QListWidgetItem *selectedVersionItem = list->currentItem();
+                if (!selectedVersionItem) return;
+
+                QList<QPair<QString, QString>> filesToDownload;
+                QString downloadDir = dataRoot + "LauncherUpdater/LauncherSource/";
+
+                for (int i = 0; i < fileList->count(); ++i) {
+                    QListWidgetItem *fileItem = fileList->item(i);
+                    if (fileItem->checkState() == Qt::Checked) {
+                        filesToDownload.append({fileItem->data(Qt::UserRole).toString(), downloadDir + fileItem->text()});
+                    }
+                }
+
+                if (filesToDownload.isEmpty()) {
+                    QMessageBox::information(&w, "No Files Selected", "Please select at least one file to download.");
+                    return;
+                }
+
+                QDialog *downloadDialog = CreateDownloadProgressDialog(filesToDownload, &w);
+                ConnectDownloadDialogSignals(downloadDialog, &w, [&w, downloadDialog](bool success, const QList<QString>& downloadedFiles) {
+                    if (success && !downloadedFiles.isEmpty()) {
+                        QString mainPkg;
+                        for (const QString& path : downloadedFiles) {
+                            QFileInfo fi(path);
+#ifdef Q_OS_WIN
+                            if (fi.suffix().toLower() == "exe") { mainPkg = fi.fileName(); break; }
+#else
+                            if (fi.suffix().toLower() == "zip") { mainPkg = fi.fileName(); break; }
+#endif
+                        }
+                        if (!mainPkg.isEmpty()) TriggerLocalUpdate(mainPkg);
+                    }
+                    downloadDialog->deleteLater();
+                }, [&w, downloadDialog](const QList<QString>&) {
+                    downloadDialog->deleteLater();
+                });
+                downloadDialog->exec();
+            });
+        }
+        UpdateInfo uInfo = CheckForUpdates();
+        if (newsBrowser) {
+            newsBrowser->setMarkdown("Updates checked. Build: " + QString::number(GetBuildNumber()));
+        }
+    });
+    return app.exec();
 }
 
 int main(int argc, char *argv[]) {

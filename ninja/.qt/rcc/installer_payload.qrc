@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/Windows/WinInstaller/Payload">
-    <file alias="app_data.zip">C:/Users/REJENKi/Documents/LINUXWORK/RJ-MinecraftLauncher/Windows/WinInstaller/Payload/app_data.zip</file>
-  </qresource>
-</RCC>
-
