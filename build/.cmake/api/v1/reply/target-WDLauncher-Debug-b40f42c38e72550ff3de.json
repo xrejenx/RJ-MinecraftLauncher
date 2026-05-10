@@ -1149,11 +1149,11 @@
 	"dependencies" : 
 	[
 		{
-			"id" : "WDLauncher_autogen_timestamp_deps::@6890427a1f51a3e7e1df"
-		},
-		{
 			"backtrace" : 0,
 			"id" : "WDLauncher_autogen::@6890427a1f51a3e7e1df"
+		},
+		{
+			"id" : "WDLauncher_autogen_timestamp_deps::@6890427a1f51a3e7e1df"
 		}
 	],
 	"id" : "WDLauncher::@6890427a1f51a3e7e1df",
@@ -1308,11 +1308,11 @@
 	"orderDependencies" : 
 	[
 		{
-			"backtrace" : 69,
-			"id" : "Qt6::rcc::@6890427a1f51a3e7e1df"
+			"id" : "Qt6::moc::@6890427a1f51a3e7e1df"
 		},
 		{
-			"id" : "Qt6::moc::@6890427a1f51a3e7e1df"
+			"backtrace" : 69,
+			"id" : "Qt6::rcc::@6890427a1f51a3e7e1df"
 		},
 		{
 			"id" : "Qt6::uic::@6890427a1f51a3e7e1df"
@@ -1322,11 +1322,11 @@
 			"id" : "WDLauncher::@6890427a1f51a3e7e1df"
 		},
 		{
-			"id" : "WDLauncher_autogen_timestamp_deps::@6890427a1f51a3e7e1df"
-		},
-		{
 			"backtrace" : 0,
 			"id" : "WDLauncher_autogen::@6890427a1f51a3e7e1df"
+		},
+		{
+			"id" : "WDLauncher_autogen_timestamp_deps::@6890427a1f51a3e7e1df"
 		}
 	],
 	"paths" : 

@@ -1021,22 +1021,22 @@
 	"orderDependencies" : 
 	[
 		{
-			"backtrace" : 58,
-			"id" : "Qt6::rcc::@6890427a1f51a3e7e1df"
+			"id" : "Qt6::moc::@6890427a1f51a3e7e1df"
 		},
 		{
-			"id" : "Qt6::moc::@6890427a1f51a3e7e1df"
+			"backtrace" : 58,
+			"id" : "Qt6::rcc::@6890427a1f51a3e7e1df"
 		},
 		{
 			"id" : "Qt6::uic::@6890427a1f51a3e7e1df"
 		},
 		{
-			"backtrace" : 59,
-			"id" : "RJLInstaller::@6890427a1f51a3e7e1df"
-		},
-		{
 			"backtrace" : 54,
 			"id" : "WDLauncher::@6890427a1f51a3e7e1df"
+		},
+		{
+			"backtrace" : 59,
+			"id" : "RJLInstaller::@6890427a1f51a3e7e1df"
 		},
 		{
 			"backtrace" : 54,

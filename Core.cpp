@@ -1,7 +1,20 @@
+#include "Core.h"
+#include "theme.h"
+#include "icon.h"
+#include <QDir>
+#include <QFile>
+#include <QSettings>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QApplication>
 #include <QMainWindow>
 #include <QPushButton>
 #include <QComboBox>
+#include <QTimer>
+#include <QListWidget>
+#include <QTextBrowser>
+#include <QMessageBox>
+#include <QFileInfo>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPalette>
@@ -27,61 +40,53 @@
 #include <QTimer>
 #include <QSettings>
 #include <functional>
+#include <QComboBox>
+#include <QPushButton>
+#include <QDesktopServices>
+#include <QUrl>
 #include "webview.h"
 #include "icon.h"
 #include <QProcess>
 #include "theme.h"
 #include "Core.h"
+#include "LTheme/desktoptheme.h"
 
 // Forward declarations for Splash Screen Logic
 namespace SplashScreenLogic {
     bool run();
 }
-
-struct ReleaseAsset {
-    QString name;
-    QString url;
-    qint64 size;
-};
-
-struct ReleaseInfo {
-    int buildNumber;
-    QString tagName;
-    QString description;
-    bool isPreRelease;
-    QList<ReleaseAsset> assets;
-};
-
-struct UpdateInfo {
-    QList<ReleaseInfo> allReleases;
-};
-
-UpdateInfo CheckForUpdates(); // Now in LauncherUpdater/LauncherFetch/fetch.cpp
-void LogLauncherEvent(const QString &message);
-
-QDialog* CreateDownloadProgressDialog(const QList<QPair<QString, QString>>& filesToDownload, QWidget *parent);
-void ConnectDownloadDialogSignals(QDialog *dialog, QObject *receiver, 
-                                  std::function<void(bool, const QList<QString>&)> finishedCb, 
-                                  std::function<void(const QList<QString>&)> cancelledCb);
-void TriggerLocalUpdate(const QString &localZipName); // From updater.cpp
-
-#include "LauncherUpdater/LauncherDownload/downloadzip.h" // For ExtractZipFile
-
-// External function interfaces
+// External UI component creators
+QWidget* CreateModernUpdateTab(QWidget *parent);
+void PopulateInstanceList(QComboBox *comboBox);
 void ShowJavaProfileWindow(QWidget *parent);
 void ShowProfileWindow(QWidget *parent);
+void ShowInstanceSettings(QWidget *parent, const QString &instanceName);
 void ShowSettingsWindow(QWidget *parent);
-void EnsureConsoleVisibility();
-QString GetLauncherTitle(); // From LauncherPatch/version.cpp
-int GetBuildNumber();      // From LauncherPatch/version.cpp
-QString GetAppName();      // From LauncherPatch/version.cpp
+void ShowCreateThemeDialog(QWidget *parent, const std::function<void()> &onCreated);
+QDialog* CreateDownloadProgressDialog(const QList<QPair<QString, QString>>& filesToDownload, QWidget *parent);
+void ConnectDownloadDialogSignals(QDialog *dialog, QObject *receiver,
+                                  std::function<void(bool, const QList<QString>&)> finishedCb,
+                                  std::function<void(const QList<QString>&)> cancelledCb);
+QString GetLauncherTitle();
+void SyncExtractionLibrary(); // Added forward declaration
+void EnsureConsoleVisibility(); // Added forward declaration
+void LogLauncherEvent(const QString &message); // Added forward declaration
+void TriggerLocalUpdate(const QString &localZipName); // From updater.cpp
+QString GetAppName();
+int GetBuildNumber(); // From version.cpp
 QString GetLatestUpdateNote();
-int GetRequiredJavaMajorVersion(const QString &versionId, int metadataMajor = 0); // From instance-javaRequirement.cpp
-QWidget* CreateModernUpdateTab(QWidget *parent); // From updatecore.cpp
-QString GetLwglVersionForMc(const QString &mcVersion); // From lwjglhandle.cpp
-void SyncExtractionLibrary(); // From downloadlib.cpp
-void PopulateInstanceList(QComboBox *comboBox); // Changed from QListWidget
-QString GetLwglNativesPath(const QString &mcVersion); // Forward declaration for LWJGL path (from Profile_java/lwjgl-lib.cpp)
+int GetRequiredJavaMajorVersion(const QString &versionId, int metadataMajor = 0);
+QString GetLwglVersionForMc(const QString &mcVersion);
+QString GetLwglNativesPath(const QString &mcVersion);
+void LogLauncherEvent(const QString &message);
+void TriggerLocalUpdate(const QString &localZipName);
+
+struct ReleaseAsset { QString name; QString url; qint64 size; };
+struct ReleaseInfo { int buildNumber; QString tagName; QString description; bool isPreRelease; QList<ReleaseAsset> assets; };
+struct UpdateInfo { QList<ReleaseInfo> allReleases; };
+UpdateInfo CheckForUpdates();
+
+#include "LauncherUpdater/LauncherDownload/downloadzip.h"
 
 void ShowCreateThemeDialog(QWidget *parent, const std::function<void()> &onCreated) {
     QDialog dlg(parent);
@@ -134,6 +139,7 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle(GetLauncherTitle());
     setFixedSize(850, 600);
     
+    // Inlined initFoldersAndTheme() logic
     QString dataRoot = getRJLDataPath();
 
     // Ensure important folders exist on launch in the data root
@@ -148,11 +154,22 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     // Initialize Theme System
     ThemeLoader::initialize();
     ApplyLauncherIcon(this);
+    QSettings settings(dataRoot + "launcher.ini", QSettings::IniFormat);
+    if (!settings.value("theme/disableAutoColor", false).toBool() || !QFile::exists(dataRoot + "LTheme/theme.json")) {
+        ThemeLoader::setSelectedTheme(getAutoThemeName());
+        ThemeLoader::applyTheme();
+    }
     SyncExtractionLibrary();
 
     LogLauncherEvent("Launcher Core Initialized.");
     EnsureConsoleVisibility();
 
+    ApplyLauncherIcon(this);
+    setupUI();
+    updateUserLabel();
+}
+
+void MinecraftLauncher::setupUI() {
     QWidget *centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
 
@@ -165,19 +182,14 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     warningBanner->setFixedHeight(30);
     mainLayout->addWidget(warningBanner);
 
-    // Tabs area
     tabs = new QTabWidget(this);
     tabs->addTab(new QLabel("News content goes here...", this), "Update Notes");
     gameConsole = new QPlainTextEdit(this);
     gameConsole->setReadOnly(true);
-    gameConsole->setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', monospace;");
+    gameConsole->setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; font-family: monospace;");
     tabs->addTab(gameConsole, "Game Output");
     
-    // --- Tab 3: Update Manager (Split View) ---
-    QWidget *updateManagerTab = CreateModernUpdateTab(this); // Now from updatecore.cpp
-    tabs->addTab(updateManagerTab, "Launcher Update");
-
-    // --- Tab 4: Theme ---
+    tabs->addTab(CreateModernUpdateTab(this), "Launcher Update");
     QWidget *themeTab = new QWidget(this);
     QVBoxLayout *themeTabLayout = new QVBoxLayout(themeTab);
     themeTabLayout->setAlignment(Qt::AlignTop);
@@ -203,6 +215,7 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     themeTabLayout->addStretch();
     themeTabLayout->addWidget(applyThemeBtn, 0, Qt::AlignRight);
 
+    // ... (rest of UI layout logic) ...
     tabs->addTab(themeTab, "Theme");
 
     mainLayout->addWidget(tabs, 1);
@@ -234,7 +247,6 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     // Bottom Controls Layout
     QHBoxLayout *bottomLayout = new QHBoxLayout();
 
-    // Profile Section
     QVBoxLayout *profileSectionLayout = new QVBoxLayout(); 
     QLabel *profileLabel = new QLabel("Profile:", this);
     profileComboBox = new QComboBox(this);
@@ -242,23 +254,31 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     PopulateInstanceList(profileComboBox);
     
     QHBoxLayout *profileButtonsLayout = new QHBoxLayout();
-    QPushButton *newProfile = new QPushButton("New Profile", this);
+    QPushButton *newProfileBtn = new QPushButton("New Profile", this);
     QPushButton *editProfile = new QPushButton("Edit Profile", this);
-    profileButtonsLayout->addWidget(newProfile);
+    QPushButton *openFolder = new QPushButton("Open Folder", this);
+    QPushButton *switchUser = new QPushButton("Switch User", this);
+    QPushButton *settingsBtn = new QPushButton("Settings", this);
+
+    profileButtonsLayout->addWidget(newProfileBtn);
     profileButtonsLayout->addWidget(editProfile);
 
     profileSectionLayout->addWidget(profileLabel);
     profileSectionLayout->addWidget(profileComboBox);
+    profileButtonsLayout->addWidget(openFolder); // Open Folder
     profileSectionLayout->addLayout(profileButtonsLayout);
 
-    connect(newProfile, &QPushButton::clicked, this, [this]() {
+    connect(newProfileBtn, &QPushButton::clicked, this, [this]() {
         ShowJavaProfileWindow(this);
-        PopulateInstanceList(profileComboBox); // Refresh list after dialog closes
+        PopulateInstanceList(profileComboBox);
         updateUserLabel();
     });
-    connect(editProfile, &QPushButton::clicked, this, [this]() {
+    connect(editProfile, &QPushButton::clicked, this, [this]() { // Line 260
         ShowInstanceSettings(this, profileComboBox->currentText());
     });
+    connect(openFolder, &QPushButton::clicked, this, [this]() { QString selected = profileComboBox->currentText(); if (!selected.isEmpty()) { QString path = getRJLDataPath() + "Instances/" + selected; QDesktopServices::openUrl(QUrl::fromLocalFile(path)); } });
+    connect(switchUser, &QPushButton::clicked, this, [this]() { ShowProfileWindow(this); updateUserLabel(); });
+    connect(settingsBtn, &QPushButton::clicked, this, [this]() { ShowSettingsWindow(this); });
 
     // mcProcess is already a member, no need to redeclare
     mcProcess = new QProcess(this);
@@ -270,6 +290,7 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     QFont playFont = playBtn->font();
     playFont.setBold(true);
     playFont.setPointSize(18);
+    playFont.setBold(true); playFont.setPointSize(18);
     playBtn->setFont(playFont);
 
     connect(playBtn, &QPushButton::clicked, this, [this]() {
@@ -416,24 +437,12 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
         LogLauncherEvent("Instance process finished.");
     });
 
-    // Switch User Section
     QVBoxLayout *userLayout = new QVBoxLayout();
     welcomeLabel = new QLabel("Welcome, Player", this);
-    QPushButton *switchUser = new QPushButton("Switch User", this);
-    QPushButton *settingsBtn = new QPushButton("Settings", this);
-
-    connect(switchUser, &QPushButton::clicked, this, [this]() {
-        ShowProfileWindow(this);
-        updateUserLabel();
-    });
-
-    connect(settingsBtn, &QPushButton::clicked, this, [this]() {
-        ShowSettingsWindow(this);
-    });
-
+    
     userLayout->addWidget(welcomeLabel); // Keep welcomeLabel in userLayout
-    userLayout->addWidget(switchUser);
-    userLayout->addWidget(settingsBtn);
+    userLayout->addWidget(switchUser);   // Reuse buttons declared above
+    userLayout->addWidget(settingsBtn);  // Reuse buttons declared above
 
     bottomLayout->addLayout(profileSectionLayout);
     bottomLayout->addStretch();
@@ -456,132 +465,34 @@ void MinecraftLauncher::closeEvent(QCloseEvent *event) {
     }
     event->accept();
 }
-
 void MinecraftLauncher::updateUserLabel() {
     QFile file("LauncherSession.json");
+    QString user = "Guest";
     if (file.open(QIODevice::ReadOnly)) {
         QJsonParseError parseError;
         QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
         if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
             QJsonObject root = doc.object();
-            QString user = root.contains("profile") ? root["profile"].toObject()["name"].toString() : 
-                           root.contains("username") ? root["username"].toString() : 
-                           root["Username"].toString(); // Fallback for old format
-            if (!user.isEmpty()) {
-                welcomeLabel->setText("Welcome, " + user);
-            }
+            user = root.contains("profile") ? root["profile"].toObject()["name"].toString() : 
+                   root.contains("username") ? root["username"].toString() : 
+                   root.value("Username").toString(); // Fallback
         }
         file.close();
     }
+    if (welcomeLabel) welcomeLabel->setText("Welcome, " + user);
 }
 
+void MinecraftLauncher::launchMinecraft() {
+    LogLauncherEvent("Launch sequence initiated. Preparing game environment...");
+}
+
+// --- Application Entry Point ---
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     QDir::setCurrent(QCoreApplication::applicationDirPath());
+#ifndef Q_OS_WIN
     RJMLWebView::initialize();
-
-    app.setApplicationName(GetAppName());
-    app.setQuitOnLastWindowClosed(false);
-
-    if (!SplashScreenLogic::run()) {
-        return 0;
-    }
-
-    MinecraftLauncher w;
-    w.show();
-    w.showNormal();
-
-    QTimer::singleShot(100, &w, [&w]() {
-        w.raise();
-        w.activateWindow();
-    });
-
-    QString dataRoot = MinecraftLauncher::getRJLDataPath();
-    QTimer::singleShot(500, [&w, dataRoot]() {
-        QApplication::setQuitOnLastWindowClosed(true);
-
-        QListWidget* list = w.findChild<QListWidget*>("updateList");
-        QTextBrowser* details = w.findChild<QTextBrowser*>("updateDetails");
-        QPushButton* installBtn = w.findChild<QPushButton*>("installUpdateBtn");
-        QTextBrowser* newsBrowser = w.findChild<QTextBrowser*>("newsBrowser");
-        QListWidget* fileList = w.findChild<QListWidget*>("fileList");
-        QLabel* currentVerLabel = w.findChild<QLabel*>("currentVerLabel");
-
-        if (currentVerLabel) {
-            currentVerLabel->setText("Current Installed Build: " + QString::number(GetBuildNumber()));
-        }
-
-        if (list && details && installBtn && fileList) {
-            QObject::connect(list, &QListWidget::itemSelectionChanged, [list, details, installBtn, fileList]() {
-                QListWidgetItem *item = list->currentItem();
-                if (item) {
-                    details->setMarkdown(item->data(Qt::UserRole).toString());
-                    fileList->clear();
-                    QVariantList assets = item->data(Qt::UserRole + 1).toList();
-                    for (const QVariant &v : assets) {
-                        QVariantMap map = v.toMap();
-                        QListWidgetItem *fItem = new QListWidgetItem(map["name"].toString(), fileList);
-                        fItem->setCheckState(Qt::Unchecked);
-                        fItem->setData(Qt::UserRole, map["url"].toString());
-                    }
-                    installBtn->setEnabled(true);
-                } else {
-                    installBtn->setEnabled(false);
-                }
-            });
-
-            QObject::connect(installBtn, &QPushButton::clicked, [&w, list, fileList, dataRoot]() {
-                QListWidgetItem *selectedVersionItem = list->currentItem();
-                if (!selectedVersionItem) return;
-
-                QList<QPair<QString, QString>> filesToDownload;
-                QString downloadDir = dataRoot + "LauncherUpdater/LauncherSource/";
-
-                for (int i = 0; i < fileList->count(); ++i) {
-                    QListWidgetItem *fileItem = fileList->item(i);
-                    if (fileItem->checkState() == Qt::Checked) {
-                        filesToDownload.append({fileItem->data(Qt::UserRole).toString(), downloadDir + fileItem->text()});
-                    }
-                }
-
-                if (filesToDownload.isEmpty()) {
-                    QMessageBox::information(&w, "No Files Selected", "Please select at least one file to download.");
-                    return;
-                }
-
-                QDialog *downloadDialog = CreateDownloadProgressDialog(filesToDownload, &w);
-                ConnectDownloadDialogSignals(downloadDialog, &w, [&w, downloadDialog](bool success, const QList<QString>& downloadedFiles) {
-                    if (success && !downloadedFiles.isEmpty()) {
-                        QString mainPkg;
-                        for (const QString& path : downloadedFiles) {
-                            QFileInfo fi(path);
-#ifdef Q_OS_WIN
-                            if (fi.suffix().toLower() == "exe") { mainPkg = fi.fileName(); break; }
-#else
-                            if (fi.suffix().toLower() == "zip") { mainPkg = fi.fileName(); break; }
 #endif
-                        }
-                        if (!mainPkg.isEmpty()) TriggerLocalUpdate(mainPkg);
-                    }
-                    downloadDialog->deleteLater();
-                }, [&w, downloadDialog](const QList<QString>&) {
-                    downloadDialog->deleteLater();
-                });
-                downloadDialog->exec();
-            });
-        }
-        UpdateInfo uInfo = CheckForUpdates();
-        if (newsBrowser) {
-            newsBrowser->setMarkdown("Updates checked. Build: " + QString::number(GetBuildNumber()));
-        }
-    });
-    return app.exec();
-}
-
-int main(int argc, char *argv[]) {
-    QApplication app(argc, argv);
-    QDir::setCurrent(QCoreApplication::applicationDirPath());
-    RJMLWebView::initialize();
 
     app.setApplicationName(GetAppName());
 
@@ -611,8 +522,9 @@ int main(int argc, char *argv[]) {
     // Use a safety delay before re-enabling automatic shutdown. This prevents
     // a "sudden death" race condition where the app might quit if the OS
     // hasn't fully acknowledged the main window's presence yet.
-    QTimer::singleShot(500, [&w]() {
-        // Re-enable native quit behavior now that the main window is definitely stable.
+    QString dataRoot = MinecraftLauncher::getRJLDataPath(); // Ensure dataRoot is available for the timer
+
+    QTimer::singleShot(500, &w, [&w, dataRoot]() {
         QApplication::setQuitOnLastWindowClosed(true);
 
         QListWidget* list = w.findChild<QListWidget*>("updateList");
@@ -646,24 +558,17 @@ int main(int argc, char *argv[]) {
                 }
             });
 
-            QObject::connect(installBtn, &QPushButton::clicked, [&w, list, fileList]() {
+            QObject::connect(installBtn, &QPushButton::clicked, [&w, list, fileList, dataRoot]() {
                 QListWidgetItem *selectedVersionItem = list->currentItem();
                 if (!selectedVersionItem) return;
 
-                QString versionTag = selectedVersionItem->text(); // e.g., "v1.0.0 (Stable)"
-                QString buildNumber = QString::number(selectedVersionItem->data(Qt::UserRole + 2).toInt());
-
-                QList<QPair<QString, QString>> filesToDownload; // url, destinationPath
-                QString downloadDir = "LauncherUpdater/LauncherSource/"; // Where downloaded zips go
+                QList<QPair<QString, QString>> filesToDownload;
+                QString downloadDir = dataRoot + "LauncherUpdater/LauncherSource/";
 
                 for (int i = 0; i < fileList->count(); ++i) {
                     QListWidgetItem *fileItem = fileList->item(i);
-                    if (fileItem->checkState() == Qt::Checked) {
-                        QString fileUrl = fileItem->data(Qt::UserRole).toString();
-                        QString fileName = fileItem->text();
-                        QString destinationPath = downloadDir + fileName;
-                        filesToDownload.append({fileUrl, destinationPath});
-                    }
+                    if (fileItem->checkState() == Qt::Checked)
+                        filesToDownload.append({fileItem->data(Qt::UserRole).toString(), downloadDir + fileItem->text()});
                 }
 
                 if (filesToDownload.isEmpty()) {
@@ -672,39 +577,21 @@ int main(int argc, char *argv[]) {
                 }
 
                 QDialog *downloadDialog = CreateDownloadProgressDialog(filesToDownload, &w);
-                ConnectDownloadDialogSignals(downloadDialog, &w, [buildNumber, &w, downloadDialog](bool success, const QList<QString>& downloadedFiles) {
+                ConnectDownloadDialogSignals(downloadDialog, &w, [w = &w, downloadDialog](bool success, const QList<QString>& downloadedFiles) {
                     if (success && !downloadedFiles.isEmpty()) {
-                        // Use the unified handover logic from updater.cpp instead of manual extraction.
-                        QString mainZip;
+                        QString mainPkg;
                         for (const QString& path : downloadedFiles) {
                             QFileInfo fi(path);
-#ifdef Q_OS_WIN
-                            // On Windows, identify the installer executable
-                            if (fi.suffix().toLower() == "exe") {
-#else
-                            // On Linux/Mac, identify the update zip
-                            if (fi.suffix().toLower() == "zip") {
-#endif
-                                mainZip = QFileInfo(path).fileName();
-                                break;
-                            }
+                            QString suff = fi.suffix().toLower();
+                            if (suff == "exe" || suff == "zip") { mainPkg = fi.fileName(); break; }
                         }
-
-                        if (!mainZip.isEmpty()) {
-                            TriggerLocalUpdate(mainZip);
-                        } else {
-                            QMessageBox::information(&w, "Download Complete", "Package downloaded. You can apply the update from the 'Downloaded Packages' tab.");
+                        if (!mainPkg.isEmpty()) {
+                            TriggerLocalUpdate(mainPkg);
                         }
-                    } else if (!success) {
-                        QMessageBox::critical(&w, "Download Failed", "Some files failed to download. Please check logs.");
                     }
                     downloadDialog->deleteLater();
-                }, [&w, downloadDialog](const QList<QString>& partiallyDownloadedFiles) {
-                    QMessageBox::information(&w, "Download Cancelled", "Download was cancelled. Partially downloaded files remain in 'Downloaded Packages' tab.");
-                    downloadDialog->deleteLater();
-                });
-
-                downloadDialog->exec(); // Show as modal dialog
+                }, [downloadDialog](const QList<QString>&) { downloadDialog->deleteLater(); });
+                downloadDialog->exec();
             });
         }
 
@@ -720,7 +607,7 @@ int main(int argc, char *argv[]) {
             QString label = QString("%1 (%2)").arg(rel.tagName, rel.isPreRelease ? "Pre-release" : "Stable");
             QListWidgetItem *item = new QListWidgetItem(label, list);
             item->setData(Qt::UserRole, rel.description);
-            
+
             QVariantList assetsData;
             for (const auto &asset : rel.assets) {
                 QVariantMap map;
@@ -737,5 +624,6 @@ int main(int argc, char *argv[]) {
             else newsBrowser->setMarkdown(newsHtml);
         }
     });
+
     return app.exec();
 }
