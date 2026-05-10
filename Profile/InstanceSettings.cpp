@@ -40,16 +40,10 @@ public:
         mainLayout->addWidget(argsEdit);
 
         auto *btnLayout = new QHBoxLayout();
-        auto *openFolderBtn = new QPushButton("Open Folder");
         auto *saveBtn = new QPushButton("Save");
-        btnLayout->addWidget(openFolderBtn);
         btnLayout->addStretch();
         btnLayout->addWidget(saveBtn);
         mainLayout->addLayout(btnLayout);
-
-        connect(openFolderBtn, &QPushButton::clicked, this, [this]() {
-            QDesktopServices::openUrl(QUrl::fromLocalFile(MinecraftLauncher::getRJLDataPath() + "Instances/" + m_instanceName));
-        });
 
         connect(saveBtn, &QPushButton::clicked, this, [this]() {
             QFile file(m_path);

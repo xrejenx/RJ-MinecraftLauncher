@@ -1,6 +1,7 @@
 #include <QComboBox> // Changed from QListWidget
 #include <QString>
 #include <filesystem>
+#include "Core.h"
 
 namespace fs = std::filesystem;
 
@@ -12,9 +13,10 @@ void PopulateInstanceList(QComboBox *comboBox) { // Changed from QListWidget *li
     if (!comboBox) return;
     comboBox->clear();
     
-    if (!fs::exists("Instances")) fs::create_directories("Instances");
+    std::string pathStr = MinecraftLauncher::getRJLDataPath().toStdString() + "Instances";
+    if (!fs::exists(pathStr)) fs::create_directories(pathStr);
 
-    for (const auto& entry : fs::directory_iterator("Instances")) {
+    for (const auto& entry : fs::directory_iterator(pathStr)) {
         if (entry.is_directory()) {
             comboBox->addItem(QString::fromStdString(entry.path().filename().string())); // Changed from list->addItem
         }

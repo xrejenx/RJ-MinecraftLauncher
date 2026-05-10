@@ -1,5 +1,6 @@
 #include <QString>
 #include "LauncherUpdater/LauncherDownload/download.h" // For DownloadFileToPath
+#include "Core.h"
 
 // Using fetchos to determine which helper library to download
 namespace FetchOS { QString getPlatformName(); }
@@ -20,5 +21,5 @@ void SyncExtractionLibrary() {
         destinationFileName = "7za";
     }
 
-    DownloadFileToPath(libUrl, "Lib/" + destinationFileName);
+    DownloadFileToPath(libUrl, MinecraftLauncher::getRJLDataPath() + "Lib/" + destinationFileName);
 }

@@ -261,11 +261,12 @@ public:
         libStatusLabel->setStyleSheet("font-weight: bold;");
         
         auto updateLibStatus = [libStatusLabel]() {
+            QString dataRoot = MinecraftLauncher::getRJLDataPath();
             bool installed = false;
 #ifdef Q_OS_WIN
-            installed = QFile::exists("Lib/7za.exe");
+            installed = QFile::exists(dataRoot + "Lib/7za.exe");
 #else
-            installed = QFile::exists("Lib/7za");
+            installed = QFile::exists(dataRoot + "Lib/7za");
 #endif
             libStatusLabel->setText(installed ? "7zipLib:Installed" : "7zipLib:Not installed");
             libStatusLabel->setStyleSheet(installed ? "color: green;" : "color: red;");
@@ -287,7 +288,8 @@ public:
         pkgLayout->addWidget(btnInstallLocal);
 
         // Custom setup logic for Tab 3 packages
-        auto refreshTab3 = [localZips, btnInstallLocal, applyPkgFilter]() {
+        auto refreshTab3 = [localZips, btnInstallLocal, applyPkgFilter, this]() {
+            QString dataRoot = MinecraftLauncher::getRJLDataPath();
             localZips->clear();
             btnInstallLocal->setText("Apply Offline Update");
             btnInstallLocal->setStyleSheet("");
@@ -434,14 +436,27 @@ public:
         
         QPushButton *btnRollback = new QPushButton("Rollback to Selected Version");
         connect(btnRollback, &QPushButton::clicked, [rollList]() {
-            if (auto item = rollList->currentItem()) {
-                TriggerRollback(item->text());
+            QListWidgetItem *item = rollList->currentItem();
+            if (!item) return;
+
+#ifdef Q_OS_WIN
+            QString dataRoot = MinecraftLauncher::getRJLDataPath();
+            QString oldFile = dataRoot + "LauncherUpdater/LauncherSource/old/" + item->text();
+            QString tool = QCoreApplication::applicationDirPath() + "/Tools/MadeChanges.exe";
+            
+            if (QFile::exists(tool)) {
+                QProcess::startDetached(tool, {"--rollback-file", oldFile});
+                QCoreApplication::quit();
             }
+#else
+            TriggerRollback(item->text());
+#endif
         });
         rollLayout->addWidget(btnRollback);
         updateTabs->addTab(rollbackTab, "Rollback Update");
 
-        connect(updateTabs, &QTabWidget::currentChanged, [updateTabs, localZips, rollList, refreshTab3, applyRollFilter](int index) {
+        connect(updateTabs, &QTabWidget::currentChanged, [updateTabs, localZips, rollList, refreshTab3, applyRollFilter, this](int index) {
+            QString dataRoot = MinecraftLauncher::getRJLDataPath();
             if (updateTabs->tabText(index) == "Downloaded Packages") {
                 refreshTab3();
             }

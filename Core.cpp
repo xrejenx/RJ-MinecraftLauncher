@@ -60,6 +60,7 @@ QWidget* CreateModernUpdateTab(QWidget *parent);
 void PopulateInstanceList(QComboBox *comboBox);
 void ShowJavaProfileWindow(QWidget *parent);
 void ShowProfileWindow(QWidget *parent);
+void ShowInstanceWizard(QWidget *parent);
 void ShowInstanceSettings(QWidget *parent, const QString &instanceName);
 void ShowSettingsWindow(QWidget *parent);
 void ShowCreateThemeDialog(QWidget *parent, const std::function<void()> &onCreated);
@@ -160,7 +161,7 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
         ThemeLoader::setSelectedTheme(getAutoThemeName());
         ThemeLoader::applyTheme();
     }
-    SyncExtractionLibrary();
+    SyncExtractionLibrary(); // Calls without dataRoot to match implementation
 
     LogLauncherEvent("Launcher Core Initialized.");
     EnsureConsoleVisibility();
@@ -171,6 +172,7 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
 }
 
 void MinecraftLauncher::setupUI() {
+    QString dataRoot = getRJLDataPath();
     QWidget *centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
 
@@ -268,12 +270,13 @@ void MinecraftLauncher::setupUI() {
     profileSectionLayout->addLayout(profileButtonsLayout);
 
     connect(newProfileBtn, &QPushButton::clicked, this, [this]() {
-        ShowJavaProfileWindow(this);
+        ShowInstanceWizard(this);
         PopulateInstanceList(profileComboBox);
         updateUserLabel();
     });
     connect(editProfile, &QPushButton::clicked, this, [this]() { // Line 260
-        ShowInstanceSettings(this, profileComboBox->currentText());
+        ShowJavaProfileWindow(this);
+        PopulateInstanceList(profileComboBox);
     });
     connect(switchUser, &QPushButton::clicked, this, [this]() { ShowProfileWindow(this); updateUserLabel(); });
     connect(settingsBtn, &QPushButton::clicked, this, [this]() { ShowSettingsWindow(this); });
@@ -288,7 +291,6 @@ void MinecraftLauncher::setupUI() {
     QFont playFont = playBtn->font();
     playFont.setBold(true);
     playFont.setPointSize(18);
-    playFont.setBold(true); playFont.setPointSize(18);
     playBtn->setFont(playFont);
 
     connect(playBtn, &QPushButton::clicked, this, [this]() {
@@ -577,7 +579,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 QDialog *downloadDialog = CreateDownloadProgressDialog(filesToDownload, &w);
-                ConnectDownloadDialogSignals(downloadDialog, &w, [w = &w, downloadDialog](bool success, const QList<QString>& downloadedFiles) {
+                ConnectDownloadDialogSignals(downloadDialog, &w, [w = &w, downloadDialog, dataRoot](bool success, const QList<QString>& downloadedFiles) {
                     if (success && !downloadedFiles.isEmpty()) {
                         QString mainPkg;
                         for (const QString& path : downloadedFiles) {
@@ -585,8 +587,17 @@ int main(int argc, char *argv[]) {
                             QString suff = fi.suffix().toLower();
                             if (suff == "exe" || suff == "zip") { mainPkg = fi.fileName(); break; }
                         }
-                        if (!mainPkg.isEmpty()) {
+                        if (!mainPkg.isEmpty() && success) {
+#ifdef Q_OS_WIN
+                            QString tool = QCoreApplication::applicationDirPath() + "/Tools/MadeChanges.exe";
+                            QString pkgPath = dataRoot + "LauncherUpdater/LauncherSource/" + mainPkg;
+                            if (QFile::exists(tool)) {
+                                QProcess::startDetached(tool, {"--update", pkgPath});
+                                QCoreApplication::quit();
+                            }
+#else
                             TriggerLocalUpdate(mainPkg);
+#endif
                         }
                     }
                     downloadDialog->deleteLater();

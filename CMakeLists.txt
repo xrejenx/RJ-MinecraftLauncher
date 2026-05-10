@@ -296,6 +296,7 @@ if(WIN32)
         LauncherUpdater/LauncherDownload/download.cpp
         LauncherUpdater/LauncherDownload/downloadzip.cpp
         ConsoleOutput.cpp
+        LauncherPatch/version.cpp
     )
     
     # We put MadeChanges in a Tools subfolder of the portable directory
@@ -304,6 +305,12 @@ if(WIN32)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Windows-Portable/Tools"
     )
     target_link_libraries(MadeChanges PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui Qt6::Network)
+
+    target_compile_definitions(MadeChanges PRIVATE
+        LAUNCHER_APP_NAME="${APP_NAME}"
+        LAUNCHER_VERSION="${APP_VERSION}"
+        LAUNCHER_BUILD_TYPE_SHORT="${RC_BUILD_TYPE_SHORT}"
+    )
 
     # Output the installer to the root build folder for easy access
     set_target_properties(RJLInstaller PROPERTIES 

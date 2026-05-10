@@ -21,7 +21,12 @@ void LogLauncherEvent(const QString &message) {
 }
 
 QString MinecraftLauncher::getRJLDataPath() {
-    QString dataRoot = QCoreApplication::applicationDirPath() + "/RJLData/";
+    QDir appDir(QCoreApplication::applicationDirPath());
+    // If we are in "Tools" folder (used by MadeChanges), go up one level to find the installation root
+    if (appDir.dirName().toLower() == "tools") {
+        appDir.cdUp();
+    }
+    QString dataRoot = QDir::cleanPath(appDir.absolutePath() + "/RJLData") + "/";
     QDir().mkpath(dataRoot);
     return dataRoot;
 }

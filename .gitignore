@@ -1,6 +1,3 @@
-# Ignore the assets folder
-assets/
-
 # Ignore this two folders because they are not needed for the project
 Need To Be Fix/
 Theme Add Please/
@@ -9,3 +6,8 @@ Theme Add Please/
 /ninja/CMakeFiles
 /ninja/CMakeFiles/4.2.3
 /ninja/CMakeFiles/4.2.3
+/build
+/build/CMakeFiles
+/build
+/build
+/build/CMakeFiles/RJLInstaller_autogen.dir

@@ -1,9 +1,10 @@
 #include <QDir>
 #include <QStringList>
 #include <QFileInfoList>
+#include "Core.h"
 
 QStringList DetectDownloadedPackages() {
-    QDir sourceDir("LauncherUpdater/LauncherSource");
+    QDir sourceDir(MinecraftLauncher::getRJLDataPath() + "LauncherUpdater/LauncherSource");
     if (!sourceDir.exists()) sourceDir.mkpath(".");
     
     QStringList packages;

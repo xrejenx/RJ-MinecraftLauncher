@@ -18,6 +18,7 @@
 #include <QJsonObject>
 #include <QJsonDocument> // Added for QJsonDocument
 #include <QJsonArray>    // Added for QJsonArray
+#include "Core.h"
 void LogLauncherEvent(const QString &message);
 QString GetLauncherTitle();
 
@@ -195,7 +196,8 @@ private:
 
     void downloadAndExtract(const QString &url, const QString &name, const QString &ext, QProgressDialog *externalProgress = nullptr) {
         LogLauncherEvent("Starting Java download from: " + url);
-        QDir().mkpath("javas"); // Ensure the root javas folder exists
+        QString dataRoot = MinecraftLauncher::getRJLDataPath();
+        QDir().mkpath(dataRoot + "javas"); // Ensure the root javas folder exists
         
         // Improved sanitization to prevent "Failed to open file" errors
         QString safeName = name.simplified();
@@ -207,8 +209,8 @@ private:
         fileSafeName.replace(".", "_");
         
         QString fileName = fileSafeName + ext;
-        QString filePath = QDir::current().absoluteFilePath("javas/" + fileName);
-        QString extractDir = QDir::current().absoluteFilePath("javas/" + safeName);
+        QString filePath = dataRoot + "javas/" + fileName;
+        QString extractDir = dataRoot + "javas/" + safeName;
 
         QProgressDialog *progress = externalProgress;
         if (!progress) {
