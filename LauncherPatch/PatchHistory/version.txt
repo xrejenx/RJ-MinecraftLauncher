@@ -1,11 +1,12 @@
 App_name = RJ Launcher
-App_ver = 0.3.8
-Build_prefix = 531
+App_ver = 0.3.9
+Build_prefix = 592
 Build_type = Underdevelopment
 Build_type_prefix = undev
 Build_type_prefix_short = u
-Build_date = 05:57 (UTC+7) at 05/07/2026
-Build_number = 35
+Build_date = 04:52 (UTC+7) at 05/11/2026
+Build_number = 39
+MadeChangesTools = 0.<App_ver>.<Build_prefix>.<Build_number>
 Cmakeiconconfig = <Build_type_prefix>
 Core_WindowTitle_Windows = <App_name> <App_ver>-<Build_prefix> <Build_type> (Windows)
 Core_WindowTitle_Linux = <App_name> <App_ver>-<Build_prefix> <Build_type> (LinuxQt)

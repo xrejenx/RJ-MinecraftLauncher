@@ -254,3 +254,67 @@ QString GetAppName() {
 
     return appName;
 }
+
+QString GetMadeChangesTitle() {
+    int maxBuild = -1;
+    QMap<QString, QString> bestPatchData;
+
+    QDirIterator it(":/patches", QStringList() << "*.txt", QDir::Files);
+
+    while (it.hasNext()) {
+        QFile file(it.next());
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            continue;
+
+        QTextStream in(&file);
+        QMap<QString, QString> currentData;
+        while (!in.atEnd()) {
+            QString line = in.readLine().trimmed();
+            if (line.isEmpty()) continue;
+
+            int splitIdx = line.indexOf('=');
+            if (splitIdx != -1) {
+                QString key = line.left(splitIdx).trimmed();
+                QString value = line.mid(splitIdx + 1).trimmed();
+                currentData[key] = value;
+
+                if (value.startsWith("[")) {
+                    QString block = value;
+                    while (!block.contains(']') && !in.atEnd()) {
+                        QString nextLine = in.readLine();
+                        block += "\n" + nextLine;
+                    }
+                    currentData[key] = block;
+                }
+            }
+        }
+        file.close();
+
+        bool ok;
+        int buildNum = currentData.value("Build_number").toInt(&ok);
+        if (ok && buildNum > maxBuild) {
+            maxBuild = buildNum;
+            bestPatchData = currentData;
+        }
+    }
+
+    if (maxBuild == -1 || bestPatchData.isEmpty()) {
+        return "RJ Launcher Maintenance";
+    }
+
+    QString title = bestPatchData.value("MadeChangesTools", "0.<App_ver>.<Build_prefix>.<Build_number>");
+
+    // Resolve tokens
+    QString bVerPrefix = bestPatchData.value("Build_prefix", "000");
+    QString btPrefix = bestPatchData.value("Build_type_prefix", "release");
+
+    title.replace("<App_name>", bestPatchData.value("App_name", LAUNCHER_APP_NAME));
+    title.replace("<App_ver>", bestPatchData.value("App_ver", LAUNCHER_VERSION));
+    title.replace("<Build_prefix>", bVerPrefix);
+    title.replace("<Build_type_prefix>", btPrefix);
+    title.replace("<Build_type>", bestPatchData.value("Build_type", btPrefix));
+    title.replace("<Build_number>", QString::number(maxBuild));
+
+    if (!title.startsWith("MadeChanges")) title = "MadeChanges " + title;
+    return title;
+}

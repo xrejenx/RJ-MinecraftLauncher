@@ -10,11 +10,7 @@ QStringList DetectDownloadedPackages() {
     QStringList packages;
     QStringList filters;
 
-#ifdef Q_OS_WIN
-    filters << "*.exe";
-#else
-    filters << "*.zip" << "*.tar.gz";
-#endif
+    filters << "*.zip" << "*.tar.gz" << "*.exe";
 
     QFileInfoList list = sourceDir.entryInfoList(filters, QDir::Files);
     

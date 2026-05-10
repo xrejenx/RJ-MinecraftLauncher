@@ -20,6 +20,29 @@
 // External logger (from ConsoleOutput.cpp)
 void LogLauncherEvent(const QString &message);
 int GetBuildNumber(); // From version.cpp
+QString GetMadeChangesTitle(); // From version.cpp
+
+// Helper to move contents from an extraction folder to a destination, flattening if a single subfolder exists
+void moveAndFlatten(const QString &tempExtractPath, const QString &destPath) {
+    QDir extractDir(tempExtractPath);
+    QStringList entries = extractDir.entryList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden);
+    
+    QString sourcePath = tempExtractPath;
+    if (entries.size() == 1 && QFileInfo(extractDir.absoluteFilePath(entries[0])).isDir()) {
+        sourcePath = extractDir.absoluteFilePath(entries[0]);
+    }
+
+    QDir sourceDir(sourcePath);
+    for (const QString &f : sourceDir.entryList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden)) {
+        QString oldPath = sourceDir.absoluteFilePath(f);
+        QString newPath = QDir(destPath).absoluteFilePath(f);
+        if (QFile::exists(newPath)) {
+            if (QFileInfo(newPath).isDir()) QDir(newPath).removeRecursively();
+            else QFile::remove(newPath);
+        }
+        QFile::rename(oldPath, newPath);
+    }
+}
 
 // Fallback if the build system doesn't provide the build type macro
 #ifndef LAUNCHER_BUILD_TYPE_SHORT
@@ -31,7 +54,7 @@ class MadeChangesDialog : public QDialog {
 public:
     explicit MadeChangesDialog(const QString &backupZipToRestore = "", QWidget *parent = nullptr)
         : QDialog(parent), m_backupZipToRestore(backupZipToRestore) {
-        setWindowTitle("RJ Launcher Rollback / Maintenance");
+        setWindowTitle(GetMadeChangesTitle());
         setFixedSize(500, 300);
 
         QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -102,20 +125,33 @@ private:
         QString dataRoot = MinecraftLauncher::getRJLDataPath();
         QDir rootDir(dataRoot); rootDir.cdUp();
         QString installPath = rootDir.absolutePath();
-        QString exePath = QDir(installPath).absoluteFilePath("RJML.exe");
 
-        // 1. Delete current executable (it should be closed)
-        if (QFile::exists(exePath)) {
-            if (!QFile::remove(exePath)) {
-                QMessageBox::critical(this, "Update Error", "Could not remove current executable. Is it still running?");
-                return;
-            }
+        // Backup current executable before performing the update
+        QString currentExe = QDir(installPath).absoluteFilePath("RJML.exe");
+        if (QFile::exists(currentExe)) {
+            QString oldStorePath = dataRoot + "LauncherUpdater/LauncherSource/old/";
+            QDir().mkpath(oldStorePath);
+
+            QString prefix = LAUNCHER_BUILD_TYPE_SHORT;
+            QString build = QString::number(GetBuildNumber());
+            QString backupName = QString("RJML.exe.%1%2.old").arg(prefix, build);
+            QString backupPath = oldStorePath + backupName;
+
+            QFile::remove(backupPath); // Ensure we can overwrite if an identical build was backed up
+            QFile::rename(currentExe, backupPath);
         }
 
+        QString tempExtract = dataRoot + "LauncherUpdater/temp_update/";
+        QDir(tempExtract).removeRecursively();
+        QDir().mkpath(tempExtract);
+
         // 2. Extract and Restart
-        if (ExtractZipFile(zipPath, installPath)) {
+        if (ExtractZipFile(zipPath, tempExtract)) {
+            moveAndFlatten(tempExtract, installPath);
+            QDir(tempExtract).removeRecursively();
             finishAndRestart(installPath);
         } else {
+            QDir(tempExtract).removeRecursively();
             QMessageBox::critical(this, "Update Failed", "Failed to extract update package.");
         }
     }
@@ -132,7 +168,7 @@ private:
         QString oldStorePath = dataRoot + "LauncherUpdater/LauncherSource/old/";
         QDir().mkpath(oldStorePath);
         
-        QString backupName = QString("RJML.%1%2.old").arg(prefix, build);
+        QString backupName = QString("RJML.exe.%1%2.old").arg(prefix, build);
         QString backupPath = oldStorePath + backupName;
 
         // 1. Move current to old/
@@ -195,6 +231,10 @@ private slots:
             return;
         }
 
+        QString tempExtract = dataRoot + "LauncherUpdater/temp_rollback/";
+        QDir(tempExtract).removeRecursively();
+        QDir().mkpath(tempExtract);
+
         // 1. Wipe the current installation (except oldlauncher and Tools)
         QDir appDir(installPath);
         if (appDir.exists()) {
@@ -202,16 +242,30 @@ private slots:
             while (it.hasNext()) {
                 QString entry = it.next();
                 QFileInfo info(entry);
-                if (info.fileName() == "RJLData" || info.fileName() == "Tools") continue; // Don't delete user data or tools
+                if (info.fileName() == "RJLData") continue; 
+                if (info.fileName() == "Tools") {
+                    // Allow updating tools: delete everything in Tools except the running MadeChanges.exe
+                    QDir toolsDir(entry);
+                    for (const QString &f : toolsDir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot)) {
+                        if (f.contains("MadeChanges", Qt::CaseInsensitive)) continue;
+                        QString fPath = toolsDir.absoluteFilePath(f);
+                        if (QFileInfo(fPath).isDir()) QDir(fPath).removeRecursively();
+                        else QFile::remove(fPath);
+                    }
+                    continue;
+                }
                 if (info.isDir()) QDir(entry).removeRecursively();
                 else QFile::remove(entry);
             }
         }
 
         // 2. Extract the selected backup
-        if (ExtractZipFile(backupZipPath, installPath)) {
+        if (ExtractZipFile(backupZipPath, tempExtract)) {
+            moveAndFlatten(tempExtract, installPath);
+            QDir(tempExtract).removeRecursively();
             finishAndRestart(installPath);
         } else {
+            QDir(tempExtract).removeRecursively();
             QMessageBox::critical(this, "Restore Failed", "Failed to extract the backup.");
         }
     }

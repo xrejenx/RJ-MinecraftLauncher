@@ -113,7 +113,7 @@ file(GLOB PATCH_FILES CONFIGURE_DEPENDS "LauncherPatch/PatchHistory/*.txt")
 if(PATCH_FILES)
     qt_add_resources(WDLauncher "patches"
         PREFIX "/patches"
-        BASE "LauncherPatch/PatchHistory"
+        BASE "${CMAKE_CURRENT_SOURCE_DIR}/LauncherPatch/PatchHistory"
         FILES ${PATCH_FILES}
     )
 endif()
@@ -312,6 +312,11 @@ if(WIN32)
         LAUNCHER_BUILD_TYPE_SHORT="${RC_BUILD_TYPE_SHORT}"
     )
 
+    # PatchHistory for MadeChanges
+    if(PATCH_FILES)
+        qt_add_resources(MadeChanges "patches" PREFIX "/patches" BASE "${CMAKE_CURRENT_SOURCE_DIR}/LauncherPatch/PatchHistory" FILES ${PATCH_FILES})
+    endif()
+
     # Output the installer to the root build folder for easy access
     set_target_properties(RJLInstaller PROPERTIES 
         OUTPUT_NAME "RJLInstaller"
@@ -321,6 +326,11 @@ if(WIN32)
     # Linking and Resources
     target_link_libraries(RJLInstaller PRIVATE Qt6::Widgets Qt6::Core Qt6::Gui Qt6::Network)
     
+    # PatchHistory for RJLInstaller
+    if(PATCH_FILES)
+        qt_add_resources(RJLInstaller "patches" PREFIX "/patches" BASE "${CMAKE_CURRENT_SOURCE_DIR}/LauncherPatch/PatchHistory" FILES ${PATCH_FILES})
+    endif()
+
     # Attach generated metadata resource
     if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/details_generated.rc")
         target_sources(RJLInstaller PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/details_generated.rc")

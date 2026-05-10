@@ -1,9 +1,0 @@
-App_name = RJ Launcher
-App_ver = 0.2.2
-Build_prefix = 016
-Build_type = Underdevelopment
-Build_type_prefix = undev
-Build_date = 11:14 (UTC+7) at 05/05/2026
-Build_number = 7
-Core_WindowTitle_Windows = <App_name> <App_ver>-<Build_prefix> <Build_type> (Windows)
-Core_WindowTitle_Linux = <App_name> <App_ver>-<Build_prefix> <Build_type> (LinuxQt)

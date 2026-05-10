@@ -284,6 +284,21 @@ private:
         QString instPath = pathEdit->text();
         QDir().mkpath(instPath);
 
+        auto moveAndFlatten = [](const QString &srcPath, const QString &dstPath) {
+            QDir srcDir(srcPath);
+            QStringList entries = srcDir.entryList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden);
+            QString finalSrc = srcPath;
+            if (entries.size() == 1 && QFileInfo(srcDir.absoluteFilePath(entries[0])).isDir()) {
+                finalSrc = srcDir.absoluteFilePath(entries[0]);
+            }
+            QDir source(finalSrc);
+            for (const QString &f : source.entryList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden)) {
+                QString dest = QDir(dstPath).absoluteFilePath(f);
+                if (QFile::exists(dest)) { if (QFileInfo(dest).isDir()) QDir(dest).removeRecursively(); else QFile::remove(dest); }
+                QFile::rename(source.absoluteFilePath(f), dest);
+            }
+        };
+
         // External tools cannot read from Qt Resources (":/"), so we must copy it to a temp file first
         QString zipResourcePath = ":/Windows/WinInstaller/Payload/app_data.zip";
         QString tempZipPath = QDir::tempPath() + "/RJML_install_payload.zip";
@@ -291,13 +306,19 @@ private:
         if (QFile::exists(zipResourcePath)) {
             if (QFile::exists(tempZipPath)) QFile::remove(tempZipPath); // Clean old attempts
 
+            QString tempExtract = QDir::tempPath() + "/RJML_install_extract";
+            QDir(tempExtract).removeRecursively();
+            QDir().mkpath(tempExtract);
+
             if (QFile::copy(zipResourcePath, tempZipPath)) {
-                if (ExtractZipFile(tempZipPath, instPath)) {
+                if (ExtractZipFile(tempZipPath, tempExtract)) {
+                    moveAndFlatten(tempExtract, instPath);
                     QMessageBox::information(this, "Success", "Installation completed successfully!");
                     if (cbLaunch->isChecked()) {
                         QProcess::startDetached(instPath + "/RJML.exe");
                     }
                     QFile::remove(tempZipPath); // Cleanup temp file
+                    QDir(tempExtract).removeRecursively();
                     accept();
                     return;
                 }

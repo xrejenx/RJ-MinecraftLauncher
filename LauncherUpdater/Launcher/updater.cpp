@@ -28,14 +28,24 @@ void TriggerLocalUpdate(const QString &localZipName) {
     QString dataRoot = MinecraftLauncher::getRJLDataPath();
 
 #ifdef Q_OS_WIN
-    // On Windows, the localZipName is now actually the installer executable.
-    // We locate it in the Source folder and run it directly.
-    QString installerPath = dataRoot + "LauncherUpdater/LauncherSource/" + localZipName;
-    
-    if (QProcess::startDetached(installerPath)) {
-        QCoreApplication::quit(); // Close current launcher to allow file replacement
-    } else {
-        QMessageBox::critical(nullptr, "Update Error", "Failed to launch the update installer: " + localZipName);
+    QString pkgPath = dataRoot + "LauncherUpdater/LauncherSource/" + localZipName;
+    if (localZipName.toLower().endsWith(".exe")) {
+        if (QProcess::startDetached(pkgPath)) {
+            QCoreApplication::quit();
+        } else {
+            QMessageBox::critical(nullptr, "Update Error", "Failed to launch the update installer: " + localZipName);
+        }
+    } else if (localZipName.toLower().endsWith(".zip")) {
+        QString tool = QCoreApplication::applicationDirPath() + "/Tools/MadeChanges.exe";
+        if (QFile::exists(tool)) {
+            if (QProcess::startDetached(tool, {"--update", pkgPath})) {
+                QCoreApplication::quit();
+            } else {
+                QMessageBox::critical(nullptr, "Update Error", "Failed to start updater tool.");
+            }
+        } else {
+            QMessageBox::critical(nullptr, "Update Error", "Updater tool (MadeChanges.exe) not found.");
+        }
     }
 #else
     // For Linux/macOS, continue with the existing in-place update logic
@@ -57,12 +67,12 @@ void TriggerLocalUpdate(const QString &localZipName) {
         
         int currentBuild = GetBuildNumber();
         QString shortPrefix = GetBuildTypePrefixShort().toLower();
-        QString backupName = QString("RJML.%1%2.old").arg(shortPrefix).arg(currentBuild);
+        QString backupName = QString("RJML.exe.%1%2.old").arg(shortPrefix).arg(currentBuild);
         QString backupPath = dataRoot + "LauncherUpdater/LauncherSource/old/" + backupName;
         QDir().mkpath(dataRoot + "LauncherUpdater/LauncherSource/old/");
 
         QDir checkDir(extractDir);
-        QStringList entries = checkDir.entryList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot);
+        QStringList entries = checkDir.entryList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden);
         if (entries.size() == 1 && QFileInfo(extractDir + "/" + entries[0]).isDir()) {
             extractDir = QDir(extractDir + "/" + entries[0]).absolutePath();
         }

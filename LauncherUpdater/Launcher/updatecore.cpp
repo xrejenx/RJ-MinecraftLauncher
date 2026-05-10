@@ -21,6 +21,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <functional>
+#include <QStandardPaths>
 #include "Core.h"
 #include "LauncherUpdater/LauncherDownload/downloadzip.h"
 
@@ -466,6 +467,76 @@ public:
                 applyRollFilter();
             }
         });
+
+        // Tab 5: Optional Function
+        QWidget *optionalTab = new QWidget();
+        QVBoxLayout *optLayout = new QVBoxLayout(optionalTab);
+        optLayout->setAlignment(Qt::AlignTop);
+        optLayout->setContentsMargins(20, 20, 20, 20);
+        optLayout->setSpacing(10);
+
+        QCheckBox *cbDesktopIcon = new QCheckBox("Create Desktop icon", optionalTab);
+        QCheckBox *cbStartMenu = new QCheckBox("Create Start Menu Folder", optionalTab);
+        
+        // Action Buttons
+        QHBoxLayout *btnRowLayout = new QHBoxLayout();
+        QPushButton *btnAddFunction = new QPushButton("Add Function", optionalTab);
+        QPushButton *btnUninstallShortcuts = new QPushButton("Uninstall Desktop Icon and Start Menu Folder", optionalTab);
+        btnAddFunction->setFixedHeight(35);
+        btnUninstallShortcuts->setFixedHeight(35);
+
+        btnRowLayout->addWidget(btnAddFunction);
+        btnRowLayout->addWidget(btnUninstallShortcuts);
+
+        optLayout->addWidget(cbDesktopIcon);
+        optLayout->addWidget(cbStartMenu);
+        optLayout->addSpacing(15);
+        optLayout->addLayout(btnRowLayout);
+        optLayout->addStretch();
+
+#ifdef Q_OS_WIN
+        auto createShortcutLogic = [](const QString &lnkPath) {
+            QString dataRoot = MinecraftLauncher::getRJLDataPath();
+            QString exePath = QDir(dataRoot).absoluteFilePath("../RJML.exe");
+            
+            QString nativeLnk = QDir::toNativeSeparators(lnkPath);
+            QString nativeExe = QDir::toNativeSeparators(exePath);
+
+            // Use PowerShell to create a proper Windows Shortcut (.lnk) with the EXE as the icon
+            QString cmd = QString("$s=(New-Object -COM WScript.Shell).CreateShortcut('%1');"
+                                  "$s.TargetPath='%2';"
+                                  "$s.IconLocation='%2,0';"
+                                  "$s.Save()")
+                                  .arg(nativeLnk, nativeExe);
+            
+            QProcess::startDetached("powershell", {"-WindowStyle", "Hidden", "-Command", cmd});
+        };
+
+        connect(btnAddFunction, &QPushButton::clicked, [cbDesktopIcon, cbStartMenu, createShortcutLogic]() {
+            if (cbDesktopIcon->isChecked()) {
+                QString path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/RJLauncher.lnk";
+                createShortcutLogic(path);
+            }
+            if (cbStartMenu->isChecked()) {
+                QString folder = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) + "/RJLauncher";
+                QDir().mkpath(folder);
+                createShortcutLogic(folder + "/RJLauncher.lnk");
+            }
+            QMessageBox::information(nullptr, "Optional Function", "Selected shortcuts have been created.");
+        });
+
+        connect(btnUninstallShortcuts, &QPushButton::clicked, [cbDesktopIcon, cbStartMenu]() {
+            cbDesktopIcon->setChecked(false);
+            cbStartMenu->setChecked(false);
+            
+            QFile::remove(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/RJLauncher.lnk");
+            QDir(QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) + "/RJLauncher").removeRecursively();
+            
+            QMessageBox::information(nullptr, "Maintenance", "Desktop icon and Start Menu folder have been removed.");
+        });
+#endif
+
+        updateTabs->addTab(optionalTab, "Optional Function");
 
         layout->addWidget(updateTabs);
     }
