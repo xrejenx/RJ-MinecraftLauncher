@@ -4,3 +4,8 @@ assets/
 # Ignore this two folders because they are not needed for the project
 Need To Be Fix/
 Theme Add Please/
+/ninja
+/ninja
+/ninja/CMakeFiles
+/ninja/CMakeFiles/4.2.3
+/ninja/CMakeFiles/4.2.3
