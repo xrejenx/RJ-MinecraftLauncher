@@ -32,9 +32,6 @@ void SplashScreen::setupUi() {
     progressBar = new QProgressBar(this);
     progressBar->setTextVisible(false);
     progressBar->setFixedWidth(280);
-    progressBar->setFixedHeight(6);
-    progressBar->setStyleSheet("QProgressBar { background-color: rgba(0, 0, 0, 25); border: none; border-radius: 3px; } "
-                               "QProgressBar::chunk { background-color: #2ecc71; border-radius: 3px; }");
     mainLayout->addWidget(progressBar, 0, Qt::AlignCenter);
 
     taskLabel = new QLabel("Initializing...", this);

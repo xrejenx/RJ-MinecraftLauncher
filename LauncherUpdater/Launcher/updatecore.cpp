@@ -469,6 +469,7 @@ public:
         });
 
         // Tab 5: Optional Function
+#ifdef Q_OS_WIN
         QWidget *optionalTab = new QWidget();
         QVBoxLayout *optLayout = new QVBoxLayout(optionalTab);
         optLayout->setAlignment(Qt::AlignTop);
@@ -494,7 +495,6 @@ public:
         optLayout->addLayout(btnRowLayout);
         optLayout->addStretch();
 
-#ifdef Q_OS_WIN
         auto createShortcutLogic = [](const QString &lnkPath) {
             QString dataRoot = MinecraftLauncher::getRJLDataPath();
             QString exePath = QDir(dataRoot).absoluteFilePath("../RJML.exe");
@@ -534,9 +534,9 @@ public:
             
             QMessageBox::information(nullptr, "Maintenance", "Desktop icon and Start Menu folder have been removed.");
         });
-#endif
 
         updateTabs->addTab(optionalTab, "Optional Function");
+#endif
 
         layout->addWidget(updateTabs);
     }

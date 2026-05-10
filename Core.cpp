@@ -551,13 +551,15 @@ int main(int argc, char *argv[]) {
                     for (const QVariant &v : assets) {
                         QVariantMap map = v.toMap();
                         QListWidgetItem *fItem = new QListWidgetItem(map["name"].toString(), fileList);
-                        fItem->setCheckState(Qt::Unchecked);
                         fItem->setData(Qt::UserRole, map["url"].toString());
                     }
-                    installBtn->setEnabled(true);
+                    installBtn->setEnabled(false);
                 } else {
                     installBtn->setEnabled(false);
                 }
+            });
+            QObject::connect(fileList, &QListWidget::itemSelectionChanged, [fileList, installBtn]() {
+                installBtn->setEnabled(fileList->currentItem() != nullptr);
             });
 
             QObject::connect(installBtn, &QPushButton::clicked, [&w, list, fileList, dataRoot]() {
@@ -566,17 +568,13 @@ int main(int argc, char *argv[]) {
 
                 QList<QPair<QString, QString>> filesToDownload;
                 QString downloadDir = dataRoot + "LauncherUpdater/LauncherSource/";
-
-                for (int i = 0; i < fileList->count(); ++i) {
-                    QListWidgetItem *fileItem = fileList->item(i);
-                    if (fileItem->checkState() == Qt::Checked)
-                        filesToDownload.append({fileItem->data(Qt::UserRole).toString(), downloadDir + fileItem->text()});
-                }
-
-                if (filesToDownload.isEmpty()) {
-                    QMessageBox::information(&w, "No Files Selected", "Please select at least one file to download.");
+                
+                QListWidgetItem *fileItem = fileList->currentItem();
+                if (!fileItem) {
+                    QMessageBox::information(&w, "No File Selected", "Please select a file to download.");
                     return;
                 }
+                filesToDownload.append({fileItem->data(Qt::UserRole).toString(), downloadDir + fileItem->text()});
 
                 QDialog *downloadDialog = CreateDownloadProgressDialog(filesToDownload, &w);
                 ConnectDownloadDialogSignals(downloadDialog, &w, [w = &w, downloadDialog, dataRoot](bool success, const QList<QString>& downloadedFiles) {
