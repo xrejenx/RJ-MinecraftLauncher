@@ -21,12 +21,7 @@ void LogLauncherEvent(const QString &message) {
 }
 
 QString MinecraftLauncher::getRJLDataPath() {
-    QString dataRoot;
-#ifdef Q_OS_WIN
-    dataRoot = "C:/RJLData/";
-#else
-    dataRoot = QDir::homePath() + "/.RJLData/";
-#endif
+    QString dataRoot = QCoreApplication::applicationDirPath() + "/RJLData/";
     QDir().mkpath(dataRoot);
     return dataRoot;
 }

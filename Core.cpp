@@ -90,6 +90,7 @@ UpdateInfo CheckForUpdates();
 
 void ShowCreateThemeDialog(QWidget *parent, const std::function<void()> &onCreated) {
     QDialog dlg(parent);
+    if (parent) dlg.setStyleSheet(parent->styleSheet());
     dlg.setWindowTitle("Create Custom Theme");
     QFormLayout *layout = new QFormLayout(&dlg);
 
@@ -256,7 +257,6 @@ void MinecraftLauncher::setupUI() {
     QHBoxLayout *profileButtonsLayout = new QHBoxLayout();
     QPushButton *newProfileBtn = new QPushButton("New Profile", this);
     QPushButton *editProfile = new QPushButton("Edit Profile", this);
-    QPushButton *openFolder = new QPushButton("Open Folder", this);
     QPushButton *switchUser = new QPushButton("Switch User", this);
     QPushButton *settingsBtn = new QPushButton("Settings", this);
 
@@ -265,7 +265,6 @@ void MinecraftLauncher::setupUI() {
 
     profileSectionLayout->addWidget(profileLabel);
     profileSectionLayout->addWidget(profileComboBox);
-    profileButtonsLayout->addWidget(openFolder); // Open Folder
     profileSectionLayout->addLayout(profileButtonsLayout);
 
     connect(newProfileBtn, &QPushButton::clicked, this, [this]() {
@@ -276,7 +275,6 @@ void MinecraftLauncher::setupUI() {
     connect(editProfile, &QPushButton::clicked, this, [this]() { // Line 260
         ShowInstanceSettings(this, profileComboBox->currentText());
     });
-    connect(openFolder, &QPushButton::clicked, this, [this]() { QString selected = profileComboBox->currentText(); if (!selected.isEmpty()) { QString path = getRJLDataPath() + "Instances/" + selected; QDesktopServices::openUrl(QUrl::fromLocalFile(path)); } });
     connect(switchUser, &QPushButton::clicked, this, [this]() { ShowProfileWindow(this); updateUserLabel(); });
     connect(settingsBtn, &QPushButton::clicked, this, [this]() { ShowSettingsWindow(this); });
 
@@ -310,9 +308,10 @@ void MinecraftLauncher::setupUI() {
             return;
         }
 
-        QSettings settings(QCoreApplication::applicationDirPath() + "/launcher.ini", QSettings::IniFormat);
+        QString dataRoot = MinecraftLauncher::getRJLDataPath();
+        QSettings settings(dataRoot + "launcher.ini", QSettings::IniFormat);
         
-        QFile file("LauncherSession.json");
+        QFile file(dataRoot + "userdata/LauncherSession.json");
         if (!file.open(QIODevice::ReadOnly)) {
             QMessageBox::warning(this, "Launch Error", "No active session found. Please log in using 'Switch User'.");
             return;
@@ -322,7 +321,7 @@ void MinecraftLauncher::setupUI() {
         file.close();
 
         QString instanceName = selectedInstanceName; // Use the selected text directly
-        QString instDir = QDir::current().absoluteFilePath("Instances/" + instanceName);
+        QString instDir = dataRoot + "Instances/" + instanceName;
         QString absoluteGameDir = instDir;
         
         QJsonObject instData;
@@ -361,7 +360,7 @@ void MinecraftLauncher::setupUI() {
 
         // Try to find the specific Java required for this version in our 'javas' folder
         int reqMajor = GetRequiredJavaMajorVersion(version, instData["javaMajor"].toInt());
-        QDir javasDir("javas");
+        QDir javasDir(dataRoot + "javas");
         QStringList candidates = javasDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
         for (const QString &dir : candidates) {
             // Look for folders like zulu-jdk-25 or jdk-17
@@ -370,7 +369,7 @@ void MinecraftLauncher::setupUI() {
 #ifdef Q_OS_WIN
                 binName = "java.exe";
 #endif
-                QString detectedPath = QDir::current().absoluteFilePath("javas/" + dir + "/bin/" + binName);
+                QString detectedPath = dataRoot + "javas/" + dir + "/bin/" + binName;
                 if (QFile::exists(detectedPath)) {
                     javaPath = detectedPath;
                     break;
@@ -387,7 +386,7 @@ void MinecraftLauncher::setupUI() {
 #endif
 
         QString lwglVer = GetLwglVersionForMc(version);
-        QString absoluteLwglDir = QDir::current().absoluteFilePath("Lib/lwjgl-" + lwglVer);
+        QString absoluteLwglDir = dataRoot + "Lib/lwjgl-" + lwglVer;
         QString absoluteNativesPath = GetLwglNativesPath(version);
 
         // Use absolute paths for the classpath to ensure JARs are found
@@ -404,7 +403,7 @@ void MinecraftLauncher::setupUI() {
         processArgs << "--username" << username;
         processArgs << "--version" << version;
         processArgs << "--gameDir" << absoluteGameDir;
-        processArgs << "--assetsDir" << QDir::current().absoluteFilePath("Assets/" + instanceName);
+        processArgs << "--assetsDir" << dataRoot + "Assets/" + instanceName;
         processArgs << "--assetIndex" << assetIndex;
         processArgs << "--uuid" << uuid;
         processArgs << "--accessToken" << "0";
@@ -466,7 +465,8 @@ void MinecraftLauncher::closeEvent(QCloseEvent *event) {
     event->accept();
 }
 void MinecraftLauncher::updateUserLabel() {
-    QFile file("LauncherSession.json");
+    QString dataRoot = MinecraftLauncher::getRJLDataPath();
+    QFile file(dataRoot + "userdata/LauncherSession.json");
     QString user = "Guest";
     if (file.open(QIODevice::ReadOnly)) {
         QJsonParseError parseError;

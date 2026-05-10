@@ -60,7 +60,8 @@ public:
 private slots:
     void populateBackupList() {
         m_backupList->clear();
-        QDir oldDir("C:/RJLauncherData/oldlauncher"); // Look in the data root
+        QString dataRoot = MinecraftLauncher::getRJLDataPath();
+        QDir oldDir(dataRoot + "oldlauncher"); // Look in the data root
         if (!oldDir.exists()) {
             m_backupList->addItem("No backups found.");
             m_rollbackButton->setEnabled(false);
@@ -85,7 +86,8 @@ private slots:
         }
 
         QString backupFileName = selectedItem->text();
-        QString backupZipPath = QDir("C:/RJLauncherData/oldlauncher").absoluteFilePath(backupFileName);
+        QString dataRoot = MinecraftLauncher::getRJLDataPath();
+        QString backupZipPath = QDir(dataRoot + "oldlauncher").absoluteFilePath(backupFileName);
         QString installPath = "C:/Program Files/RJLauncher";
 
         if (QMessageBox::question(this, "Confirm Rollback",

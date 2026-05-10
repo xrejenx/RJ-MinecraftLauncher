@@ -18,7 +18,7 @@ public:
         : QDialog(parent), m_instanceName(instanceName) {
         setWindowTitle("Instance Settings: " + instanceName);
         setFixedSize(550, 450);
-        setStyleSheet("QDialog { background-color: white; }");
+        if (parent) setStyleSheet(parent->styleSheet());
 
         auto *layout = new QVBoxLayout(this);
         auto *tabs = new QTabWidget(this);
