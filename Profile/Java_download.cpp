@@ -50,7 +50,6 @@ public:
         layout->addWidget(new QLabel("<b>Available Java Versions:</b>"));
 
         tabs = new QTabWidget(this);
-        layout->addWidget(tabs);
 
         // Tab 1: Azul Zulu
         azulList = new QListWidget(this);

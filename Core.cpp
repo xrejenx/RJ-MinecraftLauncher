@@ -180,7 +180,7 @@ void MinecraftLauncher::setupUI() {
     
     // Greet Banner
     QLabel *warningBanner = new QLabel("Welcome to " + GetAppName(), this);
-    warningBanner->setStyleSheet("background-color: rgb(77, 77, 77); color: rgb(194, 194, 194); border: 1px solid rgb(255, 255, 255); padding: 5px; font-size: 11px;");
+    warningBanner->setStyleSheet("padding: 5px; font-size: 11px;"); // Keep padding and font size, remove colors
     warningBanner->setAlignment(Qt::AlignCenter);
     warningBanner->setFixedHeight(30);
     mainLayout->addWidget(warningBanner);
@@ -188,8 +188,7 @@ void MinecraftLauncher::setupUI() {
     tabs = new QTabWidget(this);
     tabs->addTab(new QLabel("News content goes here...", this), "Update Notes");
     gameConsole = new QPlainTextEdit(this);
-    gameConsole->setReadOnly(true);
-    gameConsole->setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; font-family: monospace;");
+    gameConsole->setReadOnly(true); // Keep read-only, remove colors
     tabs->addTab(gameConsole, "Game Output");
     
     tabs->addTab(CreateModernUpdateTab(this), "Launcher Update");

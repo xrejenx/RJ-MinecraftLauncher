@@ -193,10 +193,9 @@ public:
         
         QListWidget *versionList = new QListWidget(upSplitter);
         versionList->setObjectName("updateList");
-        
+
         QLabel *currentVerLabel = new QLabel(this);
         currentVerLabel->setObjectName("currentVerLabel");
-        currentVerLabel->setStyleSheet("font-weight: bold; color: #555;");
 
         QWidget *rightPanel = new QWidget(upSplitter);
         QVBoxLayout *rightLayout = new QVBoxLayout(rightPanel);

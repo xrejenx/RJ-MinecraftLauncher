@@ -89,12 +89,25 @@ void ThemeLoader::applyTheme() {
     QString acc = colors["accent"].toString();
     QString brd = colors["border"].toString();
     QString img = colors["backgroundImage"].toString();
-
-    QString windowStyle = img.isEmpty() ? 
-        QString("QMainWindow { background-color: %1; }").arg(bg) :
-        QString("QMainWindow { border-image: url(%1) 0 0 0 0 stretch stretch; }").arg(img);
     
-    qApp->setStyleSheet(windowStyle);
+    // Generate a comprehensive stylesheet to apply colors to all widgets
+    QString windowBackground = img.isEmpty() ? 
+        QString("background-color: %1;").arg(bg) :
+        QString("border-image: url(%1) 0 0 0 0 stretch stretch;").arg(img);
+
+    QString globalStyle = QString(
+        "QMainWindow { %1 }"
+        "QWidget { color: %2; }"
+        "QTabWidget::pane { border: 1px solid %4; background: transparent; }"
+        "QTabBar::tab { background: %3; border: 1px solid %4; padding: 5px 10px; margin-right: 2px; }"
+        "QTabBar::tab:selected { background: %1_bg; }"
+        "QListWidget, QTextBrowser, QPlainTextEdit, QLineEdit, QComboBox, QSpinBox { background-color: %3; border: 1px solid %4; selection-background-color: %4; }"
+        "QPushButton { background-color: %3; border: 1px solid %4; padding: 5px; min-width: 60px; }"
+        "QPushButton:hover { background-color: %4; }"
+        "QHeaderView::section { background-color: %3; border: 1px solid %4; }"
+    ).arg(img.isEmpty() ? QString("background-color: %1;").arg(bg) : QString("border-image: url(%1) 0 0 0 0 stretch stretch;").arg(img), fg, acc, brd);
+    
+    qApp->setStyleSheet(globalStyle);
 }
 
 QStringList ThemeLoader::getAvailableThemes() {
