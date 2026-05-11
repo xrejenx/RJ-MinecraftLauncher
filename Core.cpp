@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QApplication>
 #include <QMainWindow>
+#include <QStyleHints>
 #include <QPushButton>
 #include <QComboBox>
 #include <QTimer>
@@ -156,6 +157,7 @@ MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
     // Initialize Theme System
     ThemeLoader::initialize();
     ApplyLauncherIcon(this);
+
     QSettings settings(dataRoot + "launcher.ini", QSettings::IniFormat);
     if (!settings.value("theme/disableAutoColor", false).toBool() || !QFile::exists(dataRoot + "LTheme/theme.json")) {
         ThemeLoader::setSelectedTheme(getAutoThemeName());
@@ -179,8 +181,8 @@ void MinecraftLauncher::setupUI() {
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
     
     // Greet Banner
-    QLabel *warningBanner = new QLabel("Welcome to " + GetAppName(), this);
-    warningBanner->setStyleSheet("padding: 5px; font-size: 11px;"); // Keep padding and font size, remove colors
+    QLabel *warningBanner = new QLabel("Welcome to RJ Launcher", this);
+    warningBanner->setObjectName("warningBanner");
     warningBanner->setAlignment(Qt::AlignCenter);
     warningBanner->setFixedHeight(30);
     mainLayout->addWidget(warningBanner);
@@ -188,7 +190,9 @@ void MinecraftLauncher::setupUI() {
     tabs = new QTabWidget(this);
     tabs->addTab(new QLabel("News content goes here...", this), "Update Notes");
     gameConsole = new QPlainTextEdit(this);
-    gameConsole->setReadOnly(true); // Keep read-only, remove colors
+    gameConsole->setReadOnly(true);
+    // Respect Native Palette for background/text
+    gameConsole->setBackgroundRole(QPalette::Base); 
     tabs->addTab(gameConsole, "Game Output");
     
     tabs->addTab(CreateModernUpdateTab(this), "Launcher Update");
@@ -209,7 +213,6 @@ void MinecraftLauncher::setupUI() {
 
     QLabel *previewLabel = new QLabel("Theme Preview", this);
     previewLabel->setFixedSize(400, 225);
-    previewLabel->setStyleSheet("border: 2px solid gray;");
     previewLabel->setAlignment(Qt::AlignCenter);
     themeTabLayout->addWidget(previewLabel, 0, Qt::AlignCenter);
 
@@ -234,7 +237,8 @@ void MinecraftLauncher::setupUI() {
 
     connect(themeSelector, &QComboBox::currentTextChanged, this, updatePreview);
     connect(applyThemeBtn, &QPushButton::clicked, this, [themeSelector]() {
-        ThemeLoader::setSelectedTheme(themeSelector->currentText());
+        QString selected = themeSelector->currentText();
+        ThemeLoader::setSelectedTheme(selected);
         ThemeLoader::applyTheme();
     });
     connect(createThemeBtn, &QPushButton::clicked, this, [this, themeSelector]() {
@@ -496,6 +500,14 @@ int main(int argc, char *argv[]) {
 #endif
 
     app.setApplicationName(GetAppName());
+
+    // In Qt 6.11, prioritize native scheme detection for the engine initialization
+    auto scheme = app.styleHints()->colorScheme();
+    if (scheme == Qt::ColorScheme::Dark) {
+        qDebug() << "Native Dark Mode detected by Qt 6.11";
+    } else {
+        qDebug() << "Native Light Mode detected by Qt 6.11";
+    }
 
     // Prevent the application from exiting when the splash dialog closes
     app.setQuitOnLastWindowClosed(false);

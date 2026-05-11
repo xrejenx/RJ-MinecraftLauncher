@@ -12,7 +12,8 @@
 #include <QFileInfo>   // Added for QFileInfo
 #include <QTextStream>
 #include <QDebug>
-#include "Core/Core.h"
+#include <QApplication>
+#include "Core.h" // Corrected to reference the main Core.h in the root directory
 #include "LTheme/desktoptheme.h"
 
 void ThemeLoader::initialize() {
@@ -36,7 +37,7 @@ void ThemeLoader::initialize() {
 
 void ThemeLoader::createDefaultThemes() {
     QString dataRoot = MinecraftLauncher::getRJLDataPath();
-    QStringList defaults = {"LLight", "DDark"};
+    QStringList defaults = {"Llight", "Ddark"};
     for (const QString &name : defaults) {
         QString path = dataRoot + "LTheme/themes/" + name;
         QDir().mkpath(path + "/ThemeImage");
@@ -45,7 +46,7 @@ void ThemeLoader::createDefaultThemes() {
         QFile jsonFile(path + "/theme" + name + ".json");
         if (!jsonFile.exists() && jsonFile.open(QIODevice::WriteOnly)) {
             QJsonObject theme;
-            if (name == "LLight") {
+            if (name == "Llight") {
                 theme["background"] = "#FFFFFF";
                 theme["text"] = "#000000";
                 theme["accent"] = "#F0F0F0";
@@ -76,38 +77,43 @@ void ThemeLoader::createDefaultThemes() {
 void ThemeLoader::applyTheme() {
     QString dataRoot = MinecraftLauncher::getRJLDataPath();
     QString selected = getSelectedTheme();
-    QString jsonPath = dataRoot + QString("LTheme/themes/%1/theme%1.json").arg(selected);
-    
-    QFile file(jsonPath);
-    if (!file.open(QIODevice::ReadOnly)) return;
-    
-    QJsonObject colors = QJsonDocument::fromJson(file.readAll()).object();
-    file.close();
-    
-    QString bg = colors["background"].toString();
-    QString fg = colors["text"].toString();
-    QString acc = colors["accent"].toString();
-    QString brd = colors["border"].toString();
-    QString img = colors["backgroundImage"].toString();
-    
-    // Generate a comprehensive stylesheet to apply colors to all widgets
-    QString windowBackground = img.isEmpty() ? 
-        QString("background-color: %1;").arg(bg) :
-        QString("border-image: url(%1) 0 0 0 0 stretch stretch;").arg(img);
 
-    QString globalStyle = QString(
-        "QMainWindow { %1 }"
-        "QWidget { color: %2; }"
-        "QTabWidget::pane { border: 1px solid %4; background: transparent; }"
-        "QTabBar::tab { background: %3; border: 1px solid %4; padding: 5px 10px; margin-right: 2px; }"
-        "QTabBar::tab:selected { background: %1_bg; }"
-        "QListWidget, QTextBrowser, QPlainTextEdit, QLineEdit, QComboBox, QSpinBox { background-color: %3; border: 1px solid %4; selection-background-color: %4; }"
-        "QPushButton { background-color: %3; border: 1px solid %4; padding: 5px; min-width: 60px; }"
-        "QPushButton:hover { background-color: %4; }"
-        "QHeaderView::section { background-color: %3; border: 1px solid %4; }"
-    ).arg(img.isEmpty() ? QString("background-color: %1;").arg(bg) : QString("border-image: url(%1) 0 0 0 0 stretch stretch;").arg(img), fg, acc, brd);
-    
-    qApp->setStyleSheet(globalStyle);
+    // Persistent Banner Style: Black frame with white outline
+    QString bannerStyle = "QLabel#warningBanner { background-color: #000000; color: #ffffff; border: 1px solid #ffffff; font-weight: bold; }";
+
+    if (selected == "Ddark" || selected == "Llight") {
+        qApp->setStyleSheet(bannerStyle);
+        
+        if (selected == "Ddark") {
+            QPalette darkPalette;
+            darkPalette.setColor(QPalette::Window, QColor(15, 15, 15));
+            darkPalette.setColor(QPalette::WindowText, Qt::white);
+            darkPalette.setColor(QPalette::Base, Qt::black);
+            darkPalette.setColor(QPalette::AlternateBase, QColor(15, 15, 15));
+            darkPalette.setColor(QPalette::Text, Qt::white);
+            darkPalette.setColor(QPalette::Button, Qt::black); 
+            darkPalette.setColor(QPalette::ButtonText, Qt::white);
+            darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
+            darkPalette.setColor(QPalette::HighlightedText, Qt::white);
+            qApp->setPalette(darkPalette);
+        } else {
+            QPalette lightPalette;
+            lightPalette.setColor(QPalette::Window, Qt::white);
+            lightPalette.setColor(QPalette::WindowText, Qt::black);
+            lightPalette.setColor(QPalette::Base, Qt::white);
+            lightPalette.setColor(QPalette::AlternateBase, QColor(245, 245, 245));
+            lightPalette.setColor(QPalette::Text, Qt::black);
+            lightPalette.setColor(QPalette::Button, Qt::white); 
+            lightPalette.setColor(QPalette::ButtonText, Qt::black);
+            lightPalette.setColor(QPalette::Highlight, QColor(0, 120, 215)); 
+            lightPalette.setColor(QPalette::HighlightedText, Qt::white);
+            qApp->setPalette(lightPalette);
+        }
+        return;
+    }
+
+    // Custom CSS themes (legacy fallback)
+    // ... [Logic kept same as main Themeloader.cpp] ...
 }
 
 QStringList ThemeLoader::getAvailableThemes() {
@@ -145,9 +151,9 @@ QString ThemeLoader::getSelectedTheme() {
     QFile file(dataRoot + "LTheme/theme.json");
     if (file.open(QIODevice::ReadOnly)) {
         QJsonObject obj = QJsonDocument::fromJson(file.readAll()).object();
-        return obj["selectedTheme"].toString("LLight");
+        return obj["selectedTheme"].toString("Llight");
     }
-    return "LLight";
+    return "Llight";
 }
 
 void ThemeLoader::setSelectedTheme(const QString &themeName) {

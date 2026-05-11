@@ -4,16 +4,19 @@
 #include <QPalette>
 
 bool isSystemDarkMode() {
-    // Qt 6.5+ native detection
-    if (auto hints = QGuiApplication::styleHints()) {
+    // Prioritize Qt 6.5+ native color scheme detection
+    auto hints = QGuiApplication::styleHints();
+    if (hints && hints->colorScheme() != Qt::ColorScheme::Unknown) {
         return hints->colorScheme() == Qt::ColorScheme::Dark;
     }
-    
-    // Fallback for older Qt6/Environmental edge cases
+
+    // Fallback detection: Check if WindowText is lighter than the Window background
+    // This reliably indicates a dark-themed environment in older Qt versions.
     QPalette pal = QGuiApplication::palette();
     return pal.color(QPalette::WindowText).lightness() > pal.color(QPalette::Window).lightness();
 }
 
 QString getAutoThemeName() {
-    return isSystemDarkMode() ? "DDark" : "LLight";
+    // Normalize theme names for internal consistency
+    return isSystemDarkMode() ? "Ddark" : "Llight";
 }
