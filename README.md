@@ -1,6 +1,6 @@
 ## [RJ Launcher For Minecraft](https://github.com/xrejenx/RJ-MinecraftLauncher/releases)
 ### Lightweight launcher with gui design base on legacy launcher of Mojang Minecraft Launcher.
-![Repo Views](https://glitch.me)
+
 | ![Main Menu](readme/MainMenu/mainmenu.png) | ![Instance Create](readme/InstanceCreateMenu/InstanceCreate.png) |
 |--------------------------------------------|---------------------------------------------------------------|
 | Main Menu u31 0.3.8-507                    | Instance Create Menu u31 0.3.8-507                            |
