@@ -16,4 +16,3 @@ Use at your own discretion._
 This project bundles **[7‑Zip](ca://s?q=7zip_license_terms)** for archive extraction.  
 7‑Zip is licensed under the GNU LGPL. See the included [license](https://github.com/xrejenx/RJ-MinecraftLauncher/blob/RJL/readme/7zipLicense/License.txt) file for details.  
 7‑Zip is developed by Igor Pavlov and is **not related to Me**.
-i
