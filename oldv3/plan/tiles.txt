@@ -1,0 +1,7 @@
+[RESIZEABLE TILES] [RESIZEABLE GROUP] [DRANGABLE GROUP]
+when you open the launcher what the things we give to users?
+yes it an INSTANCE TAB!
+frist it look disgusting only "vertical" group can be created
+but we gonna broke that DOWN!
+so now user can move group same as move instance grid! also resize it, same as Instance Grid!
+big small wide sqaure  anything!.

@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>800</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QPushButton" name="Setting">
+    <property name="geometry">
+     <rect>
+      <x>700</x>
+      <y>560</y>
+      <width>91</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Setting</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="ChangeUser_bta">
+    <property name="geometry">
+     <rect>
+      <x>600</x>
+      <y>560</y>
+      <width>91</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Change User</string>
+    </property>
+   </widget>
+   <widget class="QTabWidget" name="tabWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>781</width>
+      <height>501</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>2</number>
+    </property>
+    <widget class="QWidget" name="inst_tab">
+     <attribute name="title">
+      <string>Instance</string>
+     </attribute>
+    </widget>
+    <widget class="QWidget" name="opt_tab">
+     <attribute name="title">
+      <string>Output</string>
+     </attribute>
+     <widget class="QTabWidget" name="tabWidget_2">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>758</width>
+        <height>451</height>
+       </rect>
+      </property>
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="gameopt_tab">
+       <attribute name="title">
+        <string>GameOutput</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="launcheropt_tab">
+       <attribute name="title">
+        <string>LauncherOutput</string>
+       </attribute>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="lauupdd_tab">
+     <attribute name="title">
+      <string>LauncherUpdate</string>
+     </attribute>
+     <widget class="QTabWidget" name="tabWidget_3">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>758</width>
+        <height>451</height>
+       </rect>
+      </property>
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
+      <widget class="QWidget" name="news_tab">
+       <attribute name="title">
+        <string>News</string>
+       </attribute>
+       <widget class="QTextEdit" name="newsText">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>730</width>
+          <height>401</height>
+         </rect>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="html">
+         <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+hr { height: 1px; border-width: 0; }
+li.unchecked::marker { content: &quot;\2610&quot;; }
+li.checked::marker { content: &quot;\2612&quot;; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;h3 style=&quot; margin-top:14px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:large; font-weight:700;&quot;&gt;RJ Launcher News&lt;/span&gt;&lt;/h3&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;No news available.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="upd_tab">
+       <attribute name="title">
+        <string>Update</string>
+       </attribute>
+       <widget class="QLabel" name="currentBuildLabel">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>300</width>
+          <height>24</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Current Build: 42</string>
+        </property>
+       </widget>
+       <widget class="QGroupBox" name="remoteGroup">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>40</y>
+          <width>300</width>
+          <height>260</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Available Remote Versions</string>
+        </property>
+        <widget class="QListWidget" name="remoteVersionsList">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>29</y>
+           <width>280</width>
+           <height>221</height>
+          </rect>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QGroupBox" name="releaseGroup">
+        <property name="geometry">
+         <rect>
+          <x>320</x>
+          <y>40</y>
+          <width>420</width>
+          <height>260</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Release Description</string>
+        </property>
+        <widget class="QTextEdit" name="releaseDescription">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>29</y>
+           <width>400</width>
+           <height>221</height>
+          </rect>
+         </property>
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+         <property name="plainText">
+          <string>Select a remote version to view its release notes.</string>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QPushButton" name="downloadButton">
+        <property name="geometry">
+         <rect>
+          <x>60</x>
+          <y>350</y>
+          <width>200</width>
+          <height>36</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Download and Install Package</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="selectFilesLabel">
+        <property name="geometry">
+         <rect>
+          <x>320</x>
+          <y>300</y>
+          <width>200</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Select Files to Download:</string>
+        </property>
+       </widget>
+       <widget class="QListWidget" name="filesToDownloadList">
+        <property name="geometry">
+         <rect>
+          <x>320</x>
+          <y>320</y>
+          <width>421</width>
+          <height>91</height>
+         </rect>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="dwn_pack_tab">
+       <attribute name="title">
+        <string>Downloaded Packages</string>
+       </attribute>
+       <widget class="QLineEdit" name="searchPackages">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>10</y>
+          <width>300</width>
+          <height>28</height>
+         </rect>
+        </property>
+        <property name="placeholderText">
+         <string>Search packages...</string>
+        </property>
+       </widget>
+       <widget class="QListWidget" name="packagesList">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>50</y>
+          <width>580</width>
+          <height>361</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QGroupBox" name="offlineGroup">
+        <property name="geometry">
+         <rect>
+          <x>610</x>
+          <y>10</y>
+          <width>140</width>
+          <height>131</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Offline</string>
+        </property>
+        <widget class="QLabel" name="libStatus">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>20</y>
+           <width>120</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>7zipLib: Installed</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="getLibButton">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>50</y>
+           <width>120</width>
+           <height>28</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Get Lib</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="applyOfflineUpdate">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>90</y>
+           <width>120</width>
+           <height>28</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Apply Offline Update</string>
+         </property>
+        </widget>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="rollbackupd_tab">
+       <attribute name="title">
+        <string>Rollback Update</string>
+       </attribute>
+       <widget class="QLineEdit" name="searchBackups">
+        <property name="geometry">
+         <rect>
+          <x>120</x>
+          <y>10</y>
+          <width>300</width>
+          <height>30</height>
+         </rect>
+        </property>
+        <property name="placeholderText">
+         <string>Search backups...</string>
+        </property>
+       </widget>
+       <widget class="QListWidget" name="backupsList">
+        <property name="geometry">
+         <rect>
+          <x>10</x>
+          <y>48</y>
+          <width>741</width>
+          <height>361</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="restoreBackupButton">
+        <property name="geometry">
+         <rect>
+          <x>430</x>
+          <y>9</y>
+          <width>200</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Restore Selected Backup</string>
+        </property>
+       </widget>
+      </widget>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="Play_bta">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>520</y>
+      <width>221</width>
+      <height>71</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Coolvetica</family>
+      <pointsize>26</pointsize>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Play</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="manage_bta">
+    <property name="geometry">
+     <rect>
+      <x>360</x>
+      <y>560</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Manage</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="new_bta">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>560</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>New</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="inst_viewer">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>523</y>
+      <width>231</width>
+      <height>31</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="currentBuildLabel_2">
+    <property name="geometry">
+     <rect>
+      <x>600</x>
+      <y>530</y>
+      <width>191</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Welcome User</string>
+    </property>
+   </widget>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

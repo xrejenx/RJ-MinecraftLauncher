@@ -1,0 +1,30 @@
+// BANNER Configuration "maybe"
+slide = 1
+fade = 1
+item = 17
+timeswitch = 5000 //MILISEC //timeswitch switch banner after time
+
+text_normal = {
+1 "What you wanna do today?."
+2 "Bring back old days launcher."
+3 "Don't forget to try Original Minecraft Launcher!."
+4 "Built on CLang."
+5 "What i can help you sir?."
+6 "Welcome To RJ Launcher."
+7 "RJ Launcher For Minecraft Java."
+8 "Don't forget to check the updates!."
+9 "Minecraft."
+10 "RezenDeveloper - RJ Launcher."
+11 "Now 0.3!."
+12 "Welcome to WD Launcher."
+13 "New build mean better!."
+14 "Crafting Tables."
+15 "Cave Game tech test."
+16 "Survival's Test."
+17 "rd132328."
+}
+
+text_update = {
+ Launcher is outdated.
+}
+

@@ -1,0 +1,8 @@
+HOW DO I COMPILE
+WIndows 64bit 1809+ 
+Linux :/ make sure to have cmake make and qt
+
+Windows go to Win64compileMenu.bat or Win64compileMSYS2.bat
+Linux use RJMLBuilder(ELF) or RJBuild.sh or RMBuild.sh //RJMLBuilder is discontinued! gui based program which preparing to work on linux and windows!
+
+if not found check "clientpc" folder

@@ -1,0 +1,20 @@
+/0.4/ return of console part1 (0.3.9 Build 600s)
+
+when user wanted to open console you can do it two ways
+
+( 1 ) DO IT TERMINALLY
+Step 1 : Run in terminal open your CMD.exe or Powershell locate RJML.exe 
+Step 2 : Run RJML.exe with option
+[ Help - Open help, console=on/off - Toggle console tracking on that cmd programs., force=on, force=admin/user/display, display=1920x1080/set as you wanted]
+
+[Example ./RJML.exe (Powershell) ./RJML.exe console=on force=on force=admin force=display display=1920x1080]
+force admin = run as admin on pc
+
+this function console track all program what it doing what it tracking what user done what program done
+[Extra option, memdisk=on/off - Toggle memdisk mode show what program and what that time it gonna take memory section on devices with name and code]
+[Extra option, nogui=on/off - this is extra test if launcher success send log it mean the code of gui(QT) is broken.]
+
+( 2 ) DO IT IN SETTINGS MENU (less option)
+Step 1 : Click on the [ Settings ] Button on right bottom under [ Switch Users ]
+Step 2 : Locate to "RJtweak"
+Step 3 : Tick "Show logs" - This will popup CMDS Menu with all "bg text without pre-set text,  just bare metal"

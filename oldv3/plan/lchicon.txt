@@ -1,0 +1,46 @@
+INTRODUCING 
+launcher icon
+Add "Instance" Tab next to "Updates notes"
+in this tab look like this
+[//////////RJLauncher/////////////////////////////////////////////////////////////////////[x]
+|[UpdateNotes][//Instance//][Output][LauncherUpdate][Theme]|
+|----------------------------Legacy--------------------------[v] <-- this short by mc name before 1.13 = legacy, before 1.13 - 1.20 = Minecraft, 1.21 - 26(lastest) = New Minecraft, user can click at group and hit "delete bta on keyboard" it delete group
+|    [//////////////|                                |[Play]      | // like play button also locate to output tab
+|    |   ICON   |                                |[Edit]      |// open instance manager like "Manage button"
+|    |______[Status]                       |[Remove]|// like in Instance manager when you hit "Delete" or del bta on keyboard
+| "Instancename"                           |[Rename]| // this show popup menu where you can enter name and click "ok" and it rename the folder and instance~
+|_______________________________________|
+On Version page in editor
+Make a sqaure box like thi [icon][Instance Name] <---
+you can click icon it open Icon manager which use iconman.cpp in C:\Users\REJENKi\Documents\GitHub\RJ-MinecraftLauncher\minecraft\icon
+this window will show icon in RJLData/icons folder and show it as selectable square icon
+click it and hit "select" it will save as that instance icon and launch that instance with that icon
+the icon manager look like this
+[/////////////////////////////////////////////////////////[x]
+|[////////]
+|| icon  |
+||_____|
+|_____________________________________|
+|[Select][Cancel][Open Folder][Total: 0 icon|
+|_____________________________________|
+
+also don't forget to copy C:\Users\REJENKi\Documents\GitHub\RJ-MinecraftLauncher\minecraft\icon\ every folder in here
+to RJLData\icons\ <-- - 
+
+also folder structure will be like this PS C:\Users\REJENKi\Documents\GitHub\RJ-MinecraftLauncher\minecraft\icon> tree
+Folder PATH listing
+Volume serial number is D61E-498E
+C:.
+└───rjiconset //primary folder
+    ├───ico // dir
+    │   └───launcher.ico // ico folder
+    │       └───address // address text files (if wanted to search it actually urls)
+    └───png // dir
+        └───launcher.png // png folder
+            └───address // address text files (if wanted to search it actually urls)
+PS C:\Users\REJENKi\Documents\GitHub\RJ-MinecraftLauncher\minecraft\icon>
+
+so as you can see theres's ico and png the icon manager
+will! search .png and .ico if png found and ico found it show in Icon Manager (ICON)
+also if found make icon set as ico+png = 1 set, total 1 set like this, make it uwu
+ 

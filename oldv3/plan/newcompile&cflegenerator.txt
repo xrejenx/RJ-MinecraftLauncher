@@ -1,0 +1,1684 @@
+COMPILER CHANGES
+ours project are hanging on multiple "cpp/h" files
+so in this changes
+the cpp and h will be generate under python
+with 
+Root of the project/project.py <--
+project.py will run the python script
+to search the folder called /python/project/genfile/
+inside genfile will have single file called
+Gen.txt <--- this store all cpp (we gonna do it later)
+example
+Gen.txt
+
+/// GEN FILE /// MAKE CHANGE TO THIS FILE DON'T FORGET TO UPDATE ///// LINE STAMP ///// LINE to END That file line (example is LINE 21 - 1677 -- Core.cpp) update to LINE 22 - 1678 -- Core.cpp
+
+/// ENCRYPTION - COMPRESSION LINE METHOD /// if have
+
+///// LINE STAMP ///// used to skip to each section easily i know you not gonna like having 10K lines but with stamp it more easier
+LINE 21 - 1677  -- Core.cpp
+
+1: Core.cpp to root/
+/////// CORE . CPP ////////
+#include "Core.h"
+#include "icon.h"
+#include <QDir>
+#include <QFile>
+#include <QSettings>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonValue>
+#include <QJsonObject>
+#include <QApplication>
+#include <QMainWindow>
+#include <QStyleHints>
+#include <QPushButton>
+#include <QGroupBox>
+#include <QCheckBox>
+#include <QComboBox>
+#include <QTimer>
+#include <QTextBrowser>
+#include <QProgressBar>
+#include <QScreen>
+#include <QMessageBox>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QInputDialog>
+#include <QPalette>
+#include <QLabel>
+#include <QFormLayout>
+#include <QLineEdit>
+#include <QGridLayout>
+#include <QMenu>
+#include <QFileDialog>
+#include <QPlainTextEdit>
+#include <QListWidget>
+#include <QDialog>
+#include <QWidget>
+#include <QColorDialog>
+#include <QTabWidget>
+#include <QCloseEvent>
+#include <QScrollArea>
+#include <QSplitter>
+#include <QTextStream>
+#include <functional>
+#include <QTreeWidget>
+#include <QDesktopServices>
+#include "Account/SESSIONMANAGER/sessionman.h"
+#include <QButtonGroup>
+#include <QMimeData>
+#include <QDrag>
+#include <QDragEnterEvent>
+#include <QMouseEvent>
+#include <QDropEvent>
+#include <QUrlQuery>
+#include <QUrl>
+#include "webview.h"
+#include <QRandomGenerator>
+#include <QSequentialAnimationGroup>
+#include <QPauseAnimation>
+#include <QRubberBand>
+#include <QRegion>
+#include <QProcess>
+#include <QStyleFactory>
+#include <QPropertyAnimation>
+#include "minecraft/icon/iconman.h"
+#ifdef Q_OS_WIN
+#include <shellapi.h>
+#endif
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+#include <QParallelAnimationGroup>
+#include <QGraphicsOpacityEffect>
+#include "LTheme/desktoptheme.h"
+#include "LTheme/Themeloader.h"
+
+// External UI component creators
+QWidget* CreateModernUpdateTab(QWidget *parent);
+void PopulateInstanceList(QComboBox *comboBox); // Helper for combo boxes
+void PopulateInstanceList(QListWidget *listWidget); // Helper for Instance Menus/Lists
+void ShowJavaProfileWindow(QWidget *parent);
+void ShowProfileWindow(QWidget *parent);
+void ShowInstanceWizard(QWidget *parent);
+void ShowJVMDownloaderNew(QWidget *parent); // Forward declaration for new Java downloader
+void ShowInstanceEditor(QWidget *parent, const QString &instanceName);
+void ShowManageInstanceWindow(QWidget *parent); // New Instance Manager
+void ShowSettingsWindow(QWidget *parent);
+void ShowCreateThemeDialog(QWidget *parent, const std::function<void()> &onCreated);
+QDialog* CreateDownloadProgressDialog(const QList<QPair<QString, QString>>& filesToDownload, QWidget *parent);
+void ConnectDownloadDialogSignals(QDialog *dialog, QObject *receiver,
+                                  std::function<void(bool, const QList<QString>&)> finishedCb,
+                                  std::function<void(const QList<QString>&)> cancelledCb);
+QString GetLauncherTitle();
+void SyncExtractionLibrary(); // Added forward declaration
+void EnsureConsoleVisibility(); // Added forward declaration
+void LogLauncherEvent(const QString &message); // Added forward declaration
+void TriggerLocalUpdate(const QString &localZipName); // From updater.cpp
+QString GetAppName();
+QString GetBuildTypePrefix(); // From version.cpp
+int GetBuildNumber(); // From version.cpp
+QString GetAppVersion() { return LAUNCHER_VERSION; }
+QString GetLatestUpdateNote();
+int GetRequiredJavaMajorVersion(const QString &versionId, int metadataMajor = 0);
+QString GetLwglVersionForMc(const QString &mcVersion);
+QString GetLwglNativesPath(const QString &mcVersion);
+
+/**
+ * SplashWindow - A themed replacement for the legacy splash screen.
+ * This is a "real" window that supports auto-color/theming.
+ */
+class SplashWindow : public QDialog {
+public:
+    // SplashWindow constructor
+    explicit SplashWindow(QWidget *parent = nullptr) : QDialog(parent) {
+        setWindowFlags(Qt::WindowStaysOnTopHint); // Physical window (shows in taskbar)
+        setFixedSize(500, 420);
+        
+        auto *layout = new QVBoxLayout(this);
+        layout->setContentsMargins(30, 30, 30, 30);
+        layout->setSpacing(20);
+
+        auto *logoLabel = new QLabel(this);
+        // Determine the build prefix, prioritizing user settings over the internal build type
+        QString dataRoot = MinecraftLauncher::getRJLDataPath();
+        QSettings settings(dataRoot + "launcher.ini", QSettings::IniFormat);
+        QString buildPrefix = settings.value("launcher/iconType", GetBuildTypePrefix().toLower()).toString();
+        if (buildPrefix.isEmpty()) buildPrefix = "release"; // Fallback safety
+
+        // The resource path is constructed using the prefix while the version folder is stripped by CMake BASE
+        QString iconPath = QString(":/launcher/icons/CmakeLauncherIcon/%1/icon.png").arg(buildPrefix);
+        QPixmap logoPix(iconPath);
+        logoLabel->setPixmap(logoPix.scaled(180, 180, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        logoLabel->setAlignment(Qt::AlignCenter);
+        layout->addWidget(logoLabel);
+
+        auto *title = new QLabel("RJ Launcher", this);
+        title->setAlignment(Qt::AlignCenter);
+        layout->addWidget(title);
+
+        statusLabel = new QLabel("Initializing system components...", this);
+        statusLabel->setAlignment(Qt::AlignCenter);
+        layout->addWidget(statusLabel);
+
+        auto *progressBar = new QProgressBar(this);
+        progressBar->setObjectName("splashProgressBar");
+#ifdef Q_OS_WIN
+        // Force Native style and reset palette to prevent "black bar" during dark theme initialization
+        QStyle *nativeStyle = QStyleFactory::create("windowsvista");
+        if (!nativeStyle) nativeStyle = QStyleFactory::create("Windows");
+        
+        if (nativeStyle) {
+            progressBar->setStyle(nativeStyle);
+            progressBar->setPalette(nativeStyle->standardPalette());
+        }
+#else
+        progressBar->setStyle(QStyleFactory::create("Fusion"));
+#endif
+        progressBar->setRange(0, 0); // Indeterminate loading
+        progressBar->setFixedHeight(8);
+        progressBar->setAlignment(Qt::AlignCenter);
+        layout->addWidget(progressBar);
+
+        if (auto *screen = QGuiApplication::primaryScreen()) {
+            move(screen->geometry().center() - rect().center());
+        }
+    }
+private:
+    QLabel *statusLabel;
+};
+
+void MinecraftLauncher::loadBannerConfig() {
+    m_normalTexts.clear();
+    m_updateTexts.clear();
+
+    QString dataRoot = getRJLDataPath();
+    QString selected = ThemeLoader::getSelectedTheme();
+    QString themeJsonPath = dataRoot + "LTheme/themes/" + selected + "/theme" + selected + ".json";
+    
+    bool useCustomBanner = false;
+    QFile jsonFile(themeJsonPath);
+    if (jsonFile.open(QIODevice::ReadOnly)) {
+        QJsonObject obj = QJsonDocument::fromJson(jsonFile.readAll()).object();
+        if (obj["custom_banner_text"].toString() == "1") useCustomBanner = true;
+    }
+
+    if (useCustomBanner) {
+        QString bannerPath = dataRoot + "LTheme/themes/" + selected + "/" + selected + ".banner";
+        QFile bFile(bannerPath);
+        if (!bFile.exists()) bFile.setFileName(bannerPath + ".txt");
+        if (bFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream in(&bFile);
+            while (!in.atEnd()) {
+                QString line = in.readLine().trimmed();
+                if (!line.isEmpty()) m_normalTexts << line;
+            }
+            return;
+        }
+    }
+
+    QFile file(":/config/banner.txt");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        m_normalTexts << "Welcome to RJ Launcher" << "Built on CLang" << "Now 0.3!";
+        m_updateTexts << "Launcher is outdated.";
+        return;
+    }
+
+    QTextStream in(&file);
+    QString currentSection;
+    while (!in.atEnd()) {
+        QString line = in.readLine().trimmed();
+        if (line.isEmpty() || line.startsWith("//")) continue;
+
+        if (line.startsWith("slide")) {
+            m_doSlide = (line.split('=').last().split("//").first().trimmed().toInt() == 1);
+        } else if (line.startsWith("fade")) {
+            m_doFade = (line.split('=').last().split("//").first().trimmed().toInt() == 1);
+        } else if (line.startsWith("timeswitch")) {
+            m_timeswitch = line.split('=').last().split("//").first().trimmed().toInt();
+        } else if (line.startsWith("item")) {
+            // Consume item count line if present
+        } else if (line.toLower().contains("text_normal") && line.contains("{")) {
+            currentSection = "normal";
+        } else if (line.toLower().contains("text_update") && line.contains("{")) {
+            currentSection = "update";
+        } else if (line.contains("}")) {
+            currentSection = "";
+        } else if (!currentSection.isEmpty()) {
+            QString txt = line;
+            // Improved parser to extract text between quotes for numbered lists
+            int firstQuote = txt.indexOf('"');
+            int lastQuote = txt.lastIndexOf('"');
+            if (firstQuote != -1 && lastQuote > firstQuote) {
+                txt = txt.mid(firstQuote + 1, lastQuote - firstQuote - 1);
+            }
+            if (!txt.isEmpty()) {
+                if (currentSection == "normal") m_normalTexts << txt;
+                else if (currentSection == "update") m_updateTexts << txt;
+            }
+        }
+    }
+}
+
+void MinecraftLauncher::rotateBanner() {
+    QStringList &activeList = m_hasUpdateStatus ? m_updateTexts : m_normalTexts;
+    if (activeList.isEmpty()) {
+        activeList << "Welcome to RJ Launcher" 
+                   << "Check the updates!" 
+                   << "Banner/banner.txt not found or empty.";
+    }
+
+    // Sequential rotation for both normal and update texts (true loop)
+    m_bannerIndex = (m_bannerIndex + 1) % activeList.size();
+
+    if (m_currentBanner) {
+        QString text = activeList.at(m_bannerIndex);
+        m_currentBanner->setText(text);
+        m_currentBanner->setCursor(m_hasUpdateStatus ? Qt::PointingHandCursor : Qt::ArrowCursor);
+        m_currentBanner->setToolTip(m_hasUpdateStatus ? "Click to update your launcher" : "");
+    }
+}
+
+struct ReleaseAsset { QString name; QString url; qint64 size; };
+struct ReleaseInfo { int buildNumber; QString tagName; QString description; bool isPreRelease; QList<ReleaseAsset> assets; };
+struct UpdateInfo { QList<ReleaseInfo> allReleases; };
+UpdateInfo CheckForUpdates();
+
+#include "LauncherUpdater/LauncherDownload/downloadzip.h"
+
+/**
+ * Core.cpp - RJ Launcher (Base)
+ * 
+ * This file provides the entry point and UI layout for the launcher.
+ */
+
+MinecraftLauncher::MinecraftLauncher(QWidget *parent) : QMainWindow(parent) {
+    setWindowTitle(GetLauncherTitle());
+    setMinimumSize(600, 450); // Reasonable minimum for resizing
+
+    QString dataRoot = getRJLDataPath();
+    QSettings settings(dataRoot + "launcher.ini", QSettings::IniFormat);
+    resize(settings.value("launcher/width", 850).toInt(), settings.value("launcher/height", 600).toInt());
+    
+    // Ensure important folders exist on launch in the data root
+    QDir().mkpath(dataRoot + "javas");
+    QDir().mkpath(dataRoot + "Lib");
+    QDir().mkpath(dataRoot + "Instances");
+    QDir().mkpath(dataRoot + "userdata");
+    QDir().mkpath(dataRoot + "LauncherUpdater/LauncherSource/old");
+    QDir().mkpath(dataRoot + "Assets");
+    QDir().mkpath(dataRoot + "icons");
+    
+    // Theme is now initialized in main() before the splash
+    ApplyLauncherIcon(this);
+
+    // Ensure library sync happens
+    SyncExtractionLibrary();
+    // Sync user icons to data root
+    extern void SyncIconsToData();
+    SyncIconsToData();
+
+    LogLauncherEvent("Welcome to the launcher!");
+    EnsureConsoleVisibility();
+
+    ApplyLauncherIcon(this);
+    setupUI();
+    refreshInstanceList();
+    refreshInstanceTab(); // Ensure tab is built
+    updateUserLabel();
+}
+
+void MinecraftLauncher::refreshInstanceTab() {
+    for (auto *box : m_instScrollContent->findChildren<QGroupBox*>(QString(), Qt::FindDirectChildrenOnly)) {
+        box->deleteLater();
+    }
+
+    // Setup folder monitoring for instance grid auto-update
+    if (!m_instanceWatcher) {
+        m_instanceWatcher = new QFileSystemWatcher(this);
+        m_instanceWatcher->addPath(getRJLDataPath() + "Instances");
+        connect(m_instanceWatcher, &QFileSystemWatcher::directoryChanged, this, &MinecraftLauncher::refreshInstanceTab);
+    }
+    
+    // Clear selection group to avoid stale references
+    if (m_instanceButtonGroup) m_instanceButtonGroup->setExclusive(false); // Allow deselection
+
+    QString dataRoot = getRJLDataPath();
+    QSettings launcherSettings(dataRoot + "launcher.ini", QSettings::IniFormat);
+    QStringList groups = launcherSettings.value("launcher/groups", QStringList{"Default"}).toStringList();
+    if (groups.isEmpty()) groups << "Default";
+
+    QMap<QString, QGridLayout*> grids;
+    QMap<QString, int> groupCounts;
+    int maxX = 400, maxY = 300; // Track content boundaries for scroll area
+    int defaultOffset = 0;
+
+    for (const QString &gName : groups) {
+        auto *box = new QGroupBox(gName, m_instScrollContent);
+        box->setAcceptDrops(true); // Enable drop support
+        box->setContextMenuPolicy(Qt::CustomContextMenu);
+        box->setFocusPolicy(Qt::StrongFocus);
+        box->setProperty("groupName", gName); // Store group name for drag/drop
+        box->setMouseTracking(true);
+        box->installEventFilter(this);
+
+        // Load independent group size
+        int savedW = launcherSettings.value("groups/" + gName + "/width", -1).toInt();
+        int savedH = launcherSettings.value("groups/" + gName + "/height", -1).toInt();
+        if (savedW > 0 && savedH > 0) {
+            box->setFixedSize(savedW, savedH);
+        } else {
+            box->setFixedSize(320, 240); // Default tile size
+        }
+
+        // Load independent position (Desktop Icon Style)
+        int x = launcherSettings.value("groups/" + gName + "/x", 20 + defaultOffset).toInt();
+        int y = launcherSettings.value("groups/" + gName + "/y", 20 + defaultOffset).toInt();
+
+        // If no saved position, stagger them so they aren't stacked at (20,20)
+        if (!launcherSettings.contains("groups/" + gName + "/x")) defaultOffset += 40;
+
+        box->move(x, y);
+        box->show();
+
+        maxX = std::max(maxX, x + box->width());
+        maxY = std::max(maxY, y + box->height());
+
+        connect(box, &QGroupBox::customContextMenuRequested, [this, gName](const QPoint &pos) {
+            Q_UNUSED(pos);
+            QMenu menu;
+            menu.addAction("Delete Group", [this, gName]() { deleteGroup(gName); });
+            menu.exec(QCursor::pos());
+        });
+
+        auto *grid = new QGridLayout(box);
+        grid->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        grids[gName] = grid;
+        groupCounts[gName] = 0;
+    }
+    // Expand content widget to ensure scrollbars appear if groups move out of view
+    m_instScrollContent->setMinimumSize(maxX + 150, maxY + 150);
+
+    QString currentSel = profileComboBox->currentText();
+    QDir dir(dataRoot + "Instances");
+    for (const QString &name : dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        QSettings config(dataRoot + "Instances/" + name + "/instance.txt", QSettings::IniFormat);
+        QString group = config.value("Group", "Default").toString();
+        if (!grids.contains(group)) group = groups.first();
+
+        QPushButton *container = new QPushButton();
+        container->setObjectName("instanceCard");
+        container->setCheckable(true);
+        m_instanceButtonGroup->addButton(container);
+        
+        // Load independent tile size
+        int savedW = config.value("Tile/width", 100).toInt();
+        int savedH = config.value("Tile/height", 130).toInt();
+        container->setFixedSize(savedW, savedH);
+
+        container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        container->setFlat(true); // Default fusion look
+        container->setAutoFillBackground(true);
+        container->setProperty("instanceName", name);
+        container->setMouseTracking(true);
+        container->installEventFilter(this); // Catch drag starts
+        container->setContextMenuPolicy(Qt::CustomContextMenu);
+
+        // Selection coloring using Palette (Fixed Dark Mode Visibility)
+        auto updatePalette = [container](bool checked) {
+            QPalette p = container->palette();
+            QColor highlight = container->palette().color(QPalette::Highlight);
+            
+            if (checked) {
+                highlight.setAlpha(100); // Stronger visibility in Dark Mode
+                p.setColor(QPalette::Button, highlight);
+                p.setColor(QPalette::Window, highlight);
+                container->setStyleSheet("QPushButton#instanceCard { border: 1px solid palette(highlight); border-radius: 4px; }");
+            } else {
+                p.setColor(QPalette::Button, Qt::transparent);
+                p.setColor(QPalette::Window, Qt::transparent);
+                container->setStyleSheet("QPushButton#instanceCard { border: none; }");
+            }
+            container->setPalette(p);
+        };
+
+        container->setChecked(name == currentSel);
+        updatePalette(container->isChecked());
+
+        connect(container, &QPushButton::toggled, this, updatePalette);
+
+        QVBoxLayout *vMain = new QVBoxLayout(container);
+        vMain->setContentsMargins(4, 8, 4, 4);
+        vMain->setSpacing(0);
+        vMain->setAlignment(Qt::AlignCenter);
+        QLabel *iconLabel = new QLabel();
+        iconLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+        iconLabel->setMinimumSize(64, 64); // Minimum icon size
+        iconLabel->setMaximumSize(128, 128); // Maximum icon size
+        iconLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred); // Allow icon to scale
+        iconLabel->setScaledContents(true);
+        
+        // Check for instance-specific icon, then global, then fallback
+        QString localIcon = dataRoot + "Instances/" + name + "/icon/icon.png";
+        if (QFile::exists(localIcon)) iconLabel->setPixmap(QPixmap(localIcon));
+        else iconLabel->setPixmap(QPixmap(":/launcher/icons/CmakeLauncherIcon/release/icon.png"));
+        
+        QLabel *nameLabel = new QLabel(name);
+        nameLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+        nameLabel->setStyleSheet("font-weight: bold; font-size: 11px; margin-top: 5px;");
+        nameLabel->setAlignment(Qt::AlignCenter);
+        nameLabel->setWordWrap(false); // Auto-scale or Elide logic
+        nameLabel->setForegroundRole(QPalette::WindowText);
+
+        QLabel *statusLabel = new QLabel("[Ready]");
+        statusLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+        statusLabel->setStyleSheet("color: #AAA;");
+        statusLabel->setAlignment(Qt::AlignCenter);
+
+        vMain->addWidget(iconLabel, 1, Qt::AlignCenter); // Take up center space
+        vMain->addStretch(); // Push text to bottom
+        vMain->addWidget(nameLabel, 0, Qt::AlignBottom | Qt::AlignCenter);
+        statusLabel->setFont(QFont("Arial", 8));
+        vMain->addWidget(statusLabel, 0, Qt::AlignBottom | Qt::AlignCenter);
+
+        int count = groupCounts[group];
+        grids[group]->addWidget(container, count / 3, count % 3);
+        groupCounts[group]++;
+
+        connect(container, &QPushButton::clicked, this, [this, name]() {
+            profileComboBox->setCurrentText(name);
+        });
+
+        connect(container, &QPushButton::customContextMenuRequested, [this, name, groups](const QPoint &pos) {
+            Q_UNUSED(pos);
+            QMenu menu;
+            QMenu *moveMenu = menu.addMenu("Move to Group");
+            for (const QString &g : groups) {
+                moveMenu->addAction(g, [this, name, g]() {
+                    QSettings s(getRJLDataPath() + "Instances/" + name + "/instance.txt", QSettings::IniFormat);
+                    s.setValue("Group", g);
+                    s.sync();
+                    refreshInstanceTab();
+                });
+            }
+            menu.exec(QCursor::pos());
+        });
+    }
+}
+
+void MinecraftLauncher::deleteGroup(const QString &gName) {
+    if (QMessageBox::question(this, "Delete Group", "Delete group '" + gName + "'? Instances will be moved to Default.") != QMessageBox::Yes) return;
+    
+    QString dataRoot = getRJLDataPath();
+    QSettings s(dataRoot + "launcher.ini", QSettings::IniFormat);
+    QStringList groups = s.value("launcher/groups").toStringList();
+    groups.removeAll(gName);
+    s.setValue("launcher/groups", groups);
+    s.sync();
+
+    QDir dir(dataRoot + "Instances");
+    for (const QString &name : dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        QSettings instS(dir.absoluteFilePath(name) + "/instance.txt", QSettings::IniFormat);
+        if (instS.value("Group").toString() == gName) {
+            instS.setValue("Group", "Default");
+            instS.sync();
+        }
+    }
+    refreshInstanceTab();
+}
+
+bool MinecraftLauncher::eventFilter(QObject *obj, QEvent *event) {
+    QWidget *target = qobject_cast<QWidget *>(obj);
+    if (!target) return QMainWindow::eventFilter(obj, event);
+
+    bool isCard = (target->objectName() == "instanceCard");
+    bool isGroup = (qobject_cast<QGroupBox *>(obj) != nullptr && obj->parent() == m_instScrollContent);
+
+    // Tile Manager: Manual Resizing Logic for Groups and Cards
+    if ((isCard || isGroup) && event->type() != QEvent::DragEnter && event->type() != QEvent::Drop) { // Exclude drag/drop events from resize logic
+        const int resizeArea = 25;
+        auto getInResizeZone = [&](const QPoint &pos) {
+            return pos.x() >= target->width() - resizeArea && pos.y() >= target->height() - resizeArea;
+        };
+
+        if (event->type() == QEvent::MouseMove) {
+            QMouseEvent *me = static_cast<QMouseEvent *>(event);
+            if (target->property("isDraggingGroup").toBool()) {
+                QPoint globalPos = me->globalPosition().toPoint();
+                QPoint offset = target->property("dragPos").toPoint();
+                QPoint newPos = target->parentWidget()->mapFromGlobal(globalPos) - offset;
+
+                // Alignment in Grid (20px Snap) for that clean desktop feel
+                int snap = 20;
+                int snappedX = qMax(0, (newPos.x() + snap / 2) / snap * snap);
+                int snappedY = qMax(0, (newPos.y() + snap / 2) / snap * snap);
+                
+                target->move(snappedX, snappedY);
+                return true;
+            } else if (target->property("isResizing").toBool()) {
+                QPoint delta = me->globalPosition().toPoint() - target->property("resizeGlobalPos").toPoint();
+                QSize startSize = target->property("resizeStartSize").toSize();
+                QSize currentSize = startSize + QSize(delta.x(), delta.y());
+
+                // Grid Snapping for Resize (20px steps) to match dragging behavior
+                int snap = 20;
+                int snappedW = (currentSize.width() + snap / 2) / snap * snap;
+                int snappedH = (currentSize.height() + snap / 2) / snap * snap;
+
+                int minW = isCard ? 80 : 250; // Increased min width for groups
+                int minH = isCard ? 100 : 150; // Taller minimum height
+                target->setFixedSize(QSize(snappedW, snappedH).expandedTo(QSize(minW, minH)));
+                return true;
+            }
+            if (getInResizeZone(me->pos())) {
+                target->setCursor(Qt::SizeFDiagCursor);
+            } else if (target->cursor().shape() == Qt::SizeFDiagCursor) {
+                target->unsetCursor();
+            }
+        } else if (event->type() == QEvent::MouseButtonPress) {
+            QMouseEvent *me = static_cast<QMouseEvent *>(event);
+            if (me->button() == Qt::LeftButton && getInResizeZone(me->pos())) {
+                target->setProperty("isResizing", true);
+                target->setProperty("resizeGlobalPos", me->globalPosition().toPoint());
+                target->setProperty("resizeStartSize", target->size());
+                return true;
+            } else if (isGroup && me->button() == Qt::LeftButton) {
+                target->setProperty("isDraggingGroup", true);
+                target->setProperty("dragPos", me->pos());
+                return true;
+            }
+        } else if (event->type() == QEvent::MouseButtonRelease) {
+            if (target->property("isResizing").toBool()) {
+                target->setProperty("isResizing", false);
+                // Save new independent size
+                if (isCard) {
+                    QString name = target->property("instanceName").toString();
+                    QSettings s(getRJLDataPath() + "Instances/" + name + "/instance.txt", QSettings::IniFormat);
+                    s.setValue("Tile/width", target->width());
+                    s.setValue("Tile/height", target->height());
+                } else if (isGroup) {
+                    QString name = target->property("groupName").toString();
+                    QSettings s(getRJLDataPath() + "launcher.ini", QSettings::IniFormat);
+                    s.setValue("groups/" + name + "/width", target->width());
+                    s.setValue("groups/" + name + "/height", target->height());
+                }
+                return true;
+            } else if (target->property("isDraggingGroup").toBool()) {
+                target->setProperty("isDraggingGroup", false);
+                // Save new independent position
+                QString name = target->property("groupName").toString();
+                QSettings s(getRJLDataPath() + "launcher.ini", QSettings::IniFormat);
+                s.setValue("groups/" + name + "/x", target->x());
+                s.setValue("groups/" + name + "/y", target->y());
+                s.sync();
+                
+                // Update content boundaries
+                m_instScrollContent->setMinimumSize(qMax(m_instScrollContent->width(), target->x() + target->width() + 150),
+                                                    qMax(m_instScrollContent->height(), target->y() + target->height() + 150));
+                return true;
+            }
+        }
+    }
+
+    // Card Selection & Drag logic (ignore if currently resizing)
+    if (isCard && !target->property("isResizing").toBool()) {
+        QPushButton *card = static_cast<QPushButton *>(target);
+        if (event->type() == QEvent::MouseButtonPress) {
+            QMouseEvent *me = static_cast<QMouseEvent *>(event);
+            if (me->button() == Qt::LeftButton) {
+                if (card->isChecked()) {
+                    card->setChecked(false);
+                    profileComboBox->clear();
+                } else {
+                    for (QAbstractButton *btn : m_instanceButtonGroup->buttons()) btn->setChecked(false);
+                    card->setChecked(true);
+                    profileComboBox->setCurrentText(card->property("instanceName").toString());
+                }
+                card->setProperty("dragPos", me->pos());
+            }
+        } else if (event->type() == QEvent::MouseMove) {
+            QMouseEvent *me = static_cast<QMouseEvent *>(event);
+            if (me->buttons() & Qt::LeftButton) {
+                if ((me->pos() - card->property("dragPos").toPoint()).manhattanLength() > QApplication::startDragDistance()) {
+                    QDrag *drag = new QDrag(this);
+                    QMimeData *mime = new QMimeData();
+                    mime->setText(card->property("instanceName").toString());
+                    drag->setMimeData(mime);
+                    drag->exec(Qt::MoveAction);
+                    return true;
+                }
+            }
+        }
+    }
+
+    // Rubber-band Selection logic for empty space in the Scroll Area
+    if (obj == m_instScrollContent) {
+        QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
+        if (event->type() == QEvent::MouseButtonPress) {
+            if (mouseEvent->button() == Qt::LeftButton) {
+                m_instScrollContent->setProperty("rubberOrigin", mouseEvent->pos());
+                QRubberBand *rubber = m_instScrollContent->findChild<QRubberBand *>("selectionRubberBand");
+                if (!rubber) {
+                    rubber = new QRubberBand(QRubberBand::Rectangle, m_instScrollContent);
+                    rubber->setObjectName("selectionRubberBand");
+                }
+                rubber->setGeometry(QRect(mouseEvent->pos(), QSize()));
+                rubber->show();
+                for (QAbstractButton *btn : m_instanceButtonGroup->buttons()) btn->setChecked(false);
+                profileComboBox->clear();
+                return true;
+            }
+        } else if (event->type() == QEvent::MouseMove) {
+            QRubberBand *rubber = m_instScrollContent->findChild<QRubberBand *>("selectionRubberBand");
+            if (rubber && mouseEvent->buttons() & Qt::LeftButton) {
+                QPoint origin = m_instScrollContent->property("rubberOrigin").toPoint();
+                rubber->setGeometry(QRect(origin, mouseEvent->pos()).normalized());
+                for (QAbstractButton *btn : m_instanceButtonGroup->buttons()) {
+                    QPushButton *card = qobject_cast<QPushButton *>(btn);
+                    if (card) {
+                        QRect cardRect = QRect(card->mapTo(m_instScrollContent, QPoint(0, 0)), card->size());
+                        card->setChecked(rubber->geometry().intersects(cardRect));
+                    }
+                }
+                return true;
+            }
+        } else if (event->type() == QEvent::MouseButtonRelease) {
+            QRubberBand *rubber = m_instScrollContent->findChild<QRubberBand *>("selectionRubberBand");
+            if (rubber && mouseEvent->button() == Qt::LeftButton) {
+                rubber->hide();
+                QList<QAbstractButton*> checked = m_instanceButtonGroup->buttons();
+                QAbstractButton* last = nullptr; int count = 0;
+                for (auto* b : checked) { if (b->isChecked()) { count++; last = b; } }
+                if (count == 1) profileComboBox->setCurrentText(last->property("instanceName").toString());
+                return true;
+            }
+        }
+    }
+
+    // Drop logic for Group Boxes (for instance cards dropped onto groups)
+    if (QGroupBox *box = qobject_cast<QGroupBox*>(obj)) { // This block handles instance cards dropped onto groups
+        if (event->type() == QEvent::DragEnter) {
+            QDragEnterEvent *de = static_cast<QDragEnterEvent*>(event);
+            // Only accept if it's an instance card, not a group being dragged
+            if (!de->mimeData()->hasFormat("application/x-rjlauncher-group-name")) {
+                de->acceptProposedAction();
+                return true;
+            }
+        } else if (event->type() == QEvent::Drop) {
+            QDropEvent *de = static_cast<QDropEvent*>(event);
+            // Only process if it's an instance card
+            if (!de->mimeData()->hasFormat("application/x-rjlauncher-group-name")) {
+                QString instName = de->mimeData()->text();
+                QString targetGroup = box->title();
+                QSettings s(getRJLDataPath() + "Instances/" + instName + "/instance.txt", QSettings::IniFormat);
+                s.setValue("Group", targetGroup);
+                s.sync();
+                refreshInstanceTab();
+                return true;
+            }
+        }
+    }
+
+    // Key press for deleting groups
+    if (event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        if (keyEvent->key() == Qt::Key_Delete) {
+            QGroupBox *box = qobject_cast<QGroupBox*>(obj);
+            if (box && box->property("groupName").isValid()) { // Ensure it's a group box with a name
+                deleteGroup(box->title());
+                return true;
+            }
+        }
+    }
+    return QMainWindow::eventFilter(obj, event);
+}
+
+void MinecraftLauncher::setupUI() {
+    QString dataRoot = getRJLDataPath();
+    QWidget *centralWidget = new QWidget(this);
+    setCentralWidget(centralWidget);
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->setContentsMargins(10, 10, 10, 10); // Float footer with 10px margin
+    mainLayout->setSpacing(10); // Restore spacing between components
+    
+    // --- Initialize Controls First to prevent SIGSEGV in Tabs ---
+    playBtn = new QPushButton("PLAY", this);
+    playBtn->setFixedWidth(300);
+    playBtn->setMinimumHeight(66);
+    playBtn->setMaximumHeight(99);
+    
+    QFont playFont = playBtn->font();
+    playFont.setBold(true);
+    playFont.setPointSize(18);
+    playBtn->setFont(playFont);
+
+    profileComboBox = new QComboBox(this);
+    profileComboBox->setMinimumWidth(180);
+    PopulateInstanceList(profileComboBox);
+
+    welcomeLabel = new QLabel("Welcome, Player", this);
+    mcProcess = new QProcess(this);
+
+    // Assemble Bottom Layout (needed for the widgets to have a parent/layout)
+    QHBoxLayout *bottomLayout = new QHBoxLayout();
+    bottomLayout->setContentsMargins(0, 0, 0, 0);
+
+    QVBoxLayout *profileSectionLayout = new QVBoxLayout(); 
+    QLabel *profileLabel = new QLabel("Profile:", this);
+    QHBoxLayout *profileButtonsLayout = new QHBoxLayout();
+    QPushButton *newProfileBtn = new QPushButton("New", this);
+    QPushButton *editProfile = new QPushButton("Manage", this);
+    profileButtonsLayout->addWidget(newProfileBtn);
+    profileButtonsLayout->addWidget(editProfile);
+
+    profileSectionLayout->addWidget(profileLabel);
+    profileSectionLayout->addWidget(profileComboBox);
+    profileSectionLayout->addLayout(profileButtonsLayout);
+
+    QVBoxLayout *userLayout = new QVBoxLayout();
+    userLayout->setAlignment(Qt::AlignRight);
+    welcomeLabel->setAlignment(Qt::AlignRight | Qt::AlignBottom);
+    QPushButton *switchUser = new QPushButton("Switch User", this);
+    QPushButton *settingsBtn = new QPushButton("Settings", this);
+
+    userLayout->addWidget(welcomeLabel);
+    userLayout->addWidget(switchUser, 0, Qt::AlignRight);
+    userLayout->addWidget(settingsBtn, 0, Qt::AlignRight);
+
+    bottomLayout->addLayout(profileSectionLayout);
+    bottomLayout->addStretch();
+    bottomLayout->addWidget(playBtn, 0, Qt::AlignCenter);
+    bottomLayout->addStretch();
+    bottomLayout->addLayout(userLayout);
+
+    // Connect Basic Controls
+    connect(newProfileBtn, &QPushButton::clicked, this, [this]() {
+        ShowInstanceWizard(this);
+        refreshInstanceList(); 
+        updateUserLabel();
+    });
+    connect(editProfile, &QPushButton::clicked, this, [this]() {
+        ShowManageInstanceWindow(this); 
+        refreshInstanceList();
+    });
+    connect(switchUser, &QPushButton::clicked, this, [this]() { ShowProfileWindow(this); updateUserLabel(); });
+    connect(settingsBtn, &QPushButton::clicked, this, [this]() { ShowSettingsWindow(this); });
+
+    // Greet Banner
+    loadBannerConfig(); 
+
+    m_bannerContainer = new QWidget(this);
+    m_bannerContainer->setObjectName("bannerContainer");
+    m_bannerContainer->setFixedSize(830, 32);
+    m_bannerContainer->setAttribute(Qt::WA_StyledBackground, true);
+    m_bannerContainer->setMask(QRegion(0, 0, 830, 32));
+    mainLayout->addWidget(m_bannerContainer);
+
+    // Set initial text from config immediately
+    QString initialText = "Welcome to RJ Launcher";
+    if (!m_normalTexts.isEmpty()) {
+        m_bannerIndex = 0; // Start at the beginning
+        initialText = m_normalTexts.at(0);
+    }
+
+    m_currentBanner = new QPushButton(initialText, m_bannerContainer);
+    m_currentBanner->setObjectName("warningBanner");
+    m_currentBanner->setFixedSize(830, 32);
+    m_currentBanner->move(0, 0);
+    connect(m_currentBanner, &QPushButton::clicked, this, [this]() {
+        if (m_hasUpdateStatus && tabs) tabs->setCurrentIndex(2);
+    });
+
+    QSettings settings(dataRoot + "launcher.ini", QSettings::IniFormat);
+    // Prioritize banner.txt unless a specific override exists in launcher.ini
+    if (settings.contains("launcher/bannerSpeed")) {
+        m_timeswitch = settings.value("launcher/bannerSpeed", m_timeswitch).toInt();
+    }
+
+    m_bannerTimer = new QTimer(this);
+    connect(m_bannerTimer, &QTimer::timeout, this, &MinecraftLauncher::rotateBanner);
+    m_bannerTimer->start(m_timeswitch);
+
+    tabs = new QTabWidget(this);
+
+    // --- New Instance Tab (Custom Dynamic Groups with Drag & Drop) ---
+    QWidget *instTab = new QWidget(this);
+    QHBoxLayout *lInst = new QHBoxLayout(instTab);
+
+    m_instanceButtonGroup = new QButtonGroup(this);
+    m_instanceButtonGroup->setExclusive(false); // Allow multiple selections
+
+    QScrollArea *scroll = new QScrollArea(instTab);
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    m_instScrollContent = new QWidget();
+    m_instScrollContent->setMouseTracking(true); // Enable mouse tracking for rubber band
+    m_instScrollContent->setAcceptDrops(true); // Allow dropping groups on empty space
+    m_instScrollContent->installEventFilter(this); // Necessary to receive drop events for positioning
+    scroll->setWidget(m_instScrollContent);
+
+    m_instScrollContent->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_instScrollContent, &QWidget::customContextMenuRequested, [this](const QPoint &pos) {
+        Q_UNUSED(pos);
+        QMenu menu;
+        menu.addAction("Create Group", [this]() {
+            bool ok;
+            QString gName = QInputDialog::getText(this, "Create Group", "Group Name:", QLineEdit::Normal, "", &ok);
+            if (ok && !gName.isEmpty()) {
+                QSettings s(getRJLDataPath() + "launcher.ini", QSettings::IniFormat);
+                QStringList groups = s.value("launcher/groups", QStringList{"Default"}).toStringList();
+                if (!groups.contains(gName)) {
+                    groups.append(gName);
+                    s.setValue("launcher/groups", groups);
+                    refreshInstanceTab();
+                }
+            }
+        });
+        menu.exec(QCursor::pos());
+    });
+
+    // --- Dedicated Action Panel (Right Side) ---
+    QWidget *sidePanel = new QWidget(instTab);
+    sidePanel->setObjectName("sidePanel");
+    sidePanel->setFixedWidth(130);
+    sidePanel->setAttribute(Qt::WA_StyledBackground, true);
+    sidePanel->setStyleSheet("#sidePanel { background-color: palette(alternate-base); border-left: 1px solid palette(mid); }");
+
+    QVBoxLayout *sideLay = new QVBoxLayout(sidePanel);
+    sideLay->setAlignment(Qt::AlignTop);
+    sideLay->setSpacing(5);
+
+    QPushButton *sidePlay = new QPushButton("Play", sidePanel);
+    QPushButton *sideEdit = new QPushButton("Edit", sidePanel);
+    QPushButton *sideRemove = new QPushButton("Remove", sidePanel);
+    QPushButton *sideRename = new QPushButton("Rename", sidePanel);
+
+    QString sideStyle = "QPushButton { text-align: left; padding: 10px; font-weight: bold; }";
+    sidePlay->setStyleSheet(sideStyle); sideEdit->setStyleSheet(sideStyle);
+    sideRemove->setStyleSheet(sideStyle); sideRename->setStyleSheet(sideStyle);
+
+    sideLay->addWidget(sidePlay);
+    sideLay->addWidget(sideEdit);
+    sideLay->addWidget(sideRemove);
+    sideLay->addWidget(sideRename);
+
+    // --- Connect Sidebar Actions ---
+    connect(sidePlay, &QPushButton::clicked, this, [this]() {
+        playBtn->click();
+    });
+    connect(sideEdit, &QPushButton::clicked, this, [this]() {
+        QString name = profileComboBox->currentText();
+        if (!name.isEmpty()) {
+            ShowInstanceEditor(this, name);
+            refreshInstanceTab();
+        }
+    });
+    connect(sideRemove, &QPushButton::clicked, this, [this]() {
+        QString name = profileComboBox->currentText();
+        if (name.isEmpty()) return;
+        if (QMessageBox::question(this, "Remove", "Delete instance " + name + "?") == QMessageBox::Yes) {
+            QDir(getRJLDataPath() + "Instances/" + name).removeRecursively();
+            refreshInstanceList();
+            refreshInstanceTab();
+        }
+    });
+    connect(sideRename, &QPushButton::clicked, this, [this, dataRoot]() {
+        QString oldName = profileComboBox->currentText();
+        if (oldName.isEmpty()) return;
+        bool ok;
+        QString newName = QInputDialog::getText(this, "Rename", "New name:", QLineEdit::Normal, oldName, &ok);
+        if (ok && !newName.isEmpty() && newName != oldName) {
+            QDir dir(dataRoot + "Instances");
+            if (dir.rename(oldName, newName)) {
+                QSettings s(dataRoot + "Instances/" + newName + "/instance.txt", QSettings::IniFormat);
+                s.setValue("Instancename", newName);
+                s.sync();
+                refreshInstanceList();
+                profileComboBox->setCurrentText(newName);
+                refreshInstanceTab();
+            } else {
+                QMessageBox::critical(this, "Error", "Failed to rename folder.");
+            }
+        }
+    });
+
+    lInst->addWidget(scroll, 1);
+    lInst->addWidget(sidePanel);
+
+    refreshInstanceTab();
+    tabs->addTab(instTab, "Instance");
+
+    // First Tab: News Browser + Banner Speed Settings
+    QWidget *newsTab = new QWidget(this);
+    QVBoxLayout *newsLayout = new QVBoxLayout(newsTab);
+    QTextBrowser *newsBrowser = new QTextBrowser(this);
+    newsBrowser->setObjectName("newsBrowser");
+    newsBrowser->setReadOnly(true);
+    newsLayout->addWidget(newsBrowser);
+    tabs->addTab(newsTab, "Update Notes");
+
+    gameConsole = new QPlainTextEdit(this);
+    gameConsole->setReadOnly(true);
+    // Ensure viewport respects the native palette role
+    gameConsole->viewport()->setBackgroundRole(QPalette::Base);
+    gameConsole->viewport()->setAutoFillBackground(true);
+    tabs->addTab(gameConsole, "Game Output");
+    
+    tabs->addTab(CreateModernUpdateTab(this), "Launcher Update");
+    QWidget *themeTab = new QWidget(this);
+    // Fix: Force the tab to use the Window role to prevent "white blocks" on Windows 10
+    themeTab->setBackgroundRole(QPalette::Window);
+    themeTab->setAutoFillBackground(true);
+
+    QVBoxLayout *themeMainLayout = new QVBoxLayout(themeTab);
+    themeMainLayout->setAlignment(Qt::AlignTop);
+
+    QHBoxLayout *themeSelectLayout = new QHBoxLayout();
+    QComboBox *themeSelector = new QComboBox(this);
+    themeSelector->addItems(ThemeLoader::getAvailableThemes());
+    themeSelector->setCurrentText(ThemeLoader::getSelectedTheme());
+
+    QPushButton *openThemeFolderBtn = new QPushButton("Open", this);
+    QPushButton *makeThemeBtn = new QPushButton("Make", this);
+    themeSelectLayout->addWidget(new QLabel("Select Theme:"));
+    themeSelectLayout->addWidget(themeSelector, 1);
+themeSelectLayout->addWidget(openThemeFolderBtn);
+themeSelectLayout->addWidget(makeThemeBtn);
+themeMainLayout->addLayout(themeSelectLayout);
+
+QLabel *themeInfoLabel = new QLabel(this);
+themeMainLayout->addWidget(themeInfoLabel);
+
+auto updateThemeInfo = [this, themeInfoLabel, dataRoot](const QString &themeDir) {
+    QString cfgPath = dataRoot + "LTheme/themes/" + themeDir + "/theme" + themeDir + ".cfg";
+    if (!QFile::exists(cfgPath)) {
+        QDir dir(dataRoot + "LTheme/themes/" + themeDir);
+        QStringList cfgs = dir.entryList({"*.cfg"});
+        if (!cfgs.isEmpty()) cfgPath = dir.absoluteFilePath(cfgs.first());
+    }
+
+    QString name = themeDir, author = "Unknown";
+    QFile f(cfgPath);
+    if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&f);
+        while (!in.atEnd()) {
+            QString line = in.readLine().trimmed();
+            if (line.startsWith("theme_name=")) name = line.section('=', 1);
+            else if (line.startsWith("author=")) author = line.section('=', 1);
+        }
+    }
+    themeInfoLabel->setText(QString("Selected theme: %1 Author: %2").arg(name, author));
+};
+
+if (themeSelector->count() > 0) updateThemeInfo(themeSelector->currentText());
+connect(themeSelector, &QComboBox::currentTextChanged, updateThemeInfo);
+
+// --- Launcher Icon Selection (Exclusive Checkboxes) ---
+QGroupBox *iconGroup = new QGroupBox("Launcher Icon Type", themeTab);
+QVBoxLayout *iconLayout = new QVBoxLayout(iconGroup);
+QCheckBox *undevIcon = new QCheckBox("undev icon", iconGroup);
+QCheckBox *betaIcon = new QCheckBox("beta icon", iconGroup);
+QCheckBox *releaseIcon = new QCheckBox("release icon", iconGroup);
+
+QString currentIcon = settings.value("launcher/iconType", GetBuildTypePrefix().toLower()).toString();
+undevIcon->setChecked(currentIcon == "undev");
+betaIcon->setChecked(currentIcon == "beta");
+releaseIcon->setChecked(currentIcon == "release");
+
+// Force Theme Checkbox logic
+m_forceThemeCheck = new QCheckBox("Force Selected Theme", themeTab);
+QString frcPath = dataRoot + "LTheme/frcthe.json";
+if (QFile::exists(frcPath)) {
+    QFile f(frcPath);
+    if (f.open(QIODevice::ReadOnly)) {
+        QJsonObject obj = QJsonDocument::fromJson(f.readAll()).object();
+        m_forceThemeCheck->setChecked(obj["is_forced"].toBool());
+        f.close();
+    }
+}
+themeMainLayout->addWidget(m_forceThemeCheck);
+
+iconLayout->addWidget(undevIcon);
+iconLayout->addWidget(betaIcon);
+iconLayout->addWidget(releaseIcon);
+themeMainLayout->addWidget(iconGroup);
+
+auto restartForIcon = [this, dataRoot](const QString &type) {
+    QSettings s(dataRoot + "launcher.ini", QSettings::IniFormat);
+    s.setValue("launcher/iconType", type);
+    LogLauncherEvent("Icon changed to " + type + ". Restarting launcher...");
+    QProcess::startDetached(qApp->applicationFilePath());
+    qApp->quit();
+};
+
+connect(undevIcon, &QCheckBox::clicked, this, [=]() {
+    if (undevIcon->isChecked()) { betaIcon->setChecked(false); releaseIcon->setChecked(false); restartForIcon("undev"); }
+    else undevIcon->setChecked(true);
+});
+connect(betaIcon, &QCheckBox::clicked, this, [=]() {
+    if (betaIcon->isChecked()) { undevIcon->setChecked(false); releaseIcon->setChecked(false); restartForIcon("beta"); }
+    else betaIcon->setChecked(true);
+});
+connect(releaseIcon, &QCheckBox::clicked, this, [=]() {
+    if (releaseIcon->isChecked()) { undevIcon->setChecked(false); betaIcon->setChecked(false); restartForIcon("release"); }
+    else releaseIcon->setChecked(true);
+});
+
+QPushButton *applyThemeBtn = new QPushButton("Apply Theme", this);
+themeMainLayout->addStretch();
+themeMainLayout->addWidget(applyThemeBtn, 0, Qt::AlignRight);
+
+// ... (rest of UI layout logic) ...
+tabs->addTab(themeTab, "Theme");
+
+mainLayout->addWidget(tabs, 1);
+
+connect(applyThemeBtn, &QPushButton::clicked, this, [themeSelector]() {
+    QString selected = themeSelector->currentText();
+    ThemeLoader::setSelectedTheme(selected);
+    ThemeLoader::applyTheme();
+});
+
+connect(openThemeFolderBtn, &QPushButton::clicked, this, [dataRoot]() {
+    QDesktopServices::openUrl(QUrl::fromLocalFile(dataRoot + "LTheme/themes"));
+});
+
+connect(makeThemeBtn, &QPushButton::clicked, this, [dataRoot]() {
+    QString tool = QCoreApplication::applicationDirPath() + "/Tools/ThemeMaker.exe";
+#ifndef Q_OS_WIN
+    tool = QCoreApplication::applicationDirPath() + "/Tools/ThemeMaker";
+    if (QFile::exists(QCoreApplication::applicationDirPath() + "/Tools/ThemeMaker.appimage")) {
+        tool = QCoreApplication::applicationDirPath() + "/Tools/ThemeMaker.appimage";
+    } else if (QFile::exists(QCoreApplication::applicationDirPath() + "/Tools/ThemeMaker.AppImage")) {
+        tool = QCoreApplication::applicationDirPath() + "/Tools/ThemeMaker.AppImage";
+    }
+#endif
+    if (QFile::exists(tool)) {
+        QProcess::startDetached(tool);
+    } else {
+        QMessageBox::critical(nullptr, "Error", "ThemeMaker tool not found at: " + tool);
+    }
+});
+
+mainLayout->addLayout(bottomLayout);
+connect(playBtn, &QPushButton::clicked, this, [this, dataRoot]() {
+    tabs->setCurrentIndex(2); // Fix: Index 2 is Output
+    gameConsole->clear();
+
+    if (mcProcess->state() != QProcess::NotRunning) {
+        mcProcess->terminate();
+        if (!mcProcess->waitForFinished(3000)) mcProcess->kill();
+        playBtn->setText("PLAY");
+        return;
+    }
+
+    QString selectedInstanceName = profileComboBox->currentText(); // Get selected text from QComboBox
+    if (selectedInstanceName.isEmpty()) { // Check if anything is selected
+        QMessageBox::warning(this, "Launch Error", "Please select an instance from the list.");
+        return;
+    }
+
+    if (!SessionManager::instance().hasActiveSession()) {
+        QMessageBox::warning(this, "Launch Error", "No active session found. Please log in using 'Switch User'.");
+        return;
+    }
+
+    QSettings launcherSettings(dataRoot + "launcher.ini", QSettings::IniFormat);
+    QString instanceName = selectedInstanceName; // Use the selected text directly
+    QString instDir = dataRoot + "Instances/" + instanceName;
+
+    // Load Instance Specific Settings
+    QSettings instConfig(instDir + "/instance.txt", QSettings::IniFormat);
+    QString minRam = instConfig.value("Settings/Minimum Ram", "512M").toString().trimmed();
+    QString maxRam = instConfig.value("Settings/Maximum Ram", "2G").toString().trimmed();
+    QString permGen = instConfig.value("Settings/Permgen", "128M").toString().trimmed();
+
+    QJsonObject instData;
+    QFile instInfo(instDir + "/instance.json");
+    if (instInfo.open(QIODevice::ReadOnly)) {
+        instData = QJsonDocument::fromJson(instInfo.readAll()).object();
+        instInfo.close();
+    }
+
+    QString argsPath = instDir + "/args.txt";
+    QStringList userArgs;
+    QFile argsFile(argsPath);
+    if (argsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&argsFile);
+        while (!in.atEnd()) {
+            QString line = in.readLine().trimmed();
+            // Skip empty lines and comments starting with #
+            if (line.isEmpty() || line.startsWith('#')) continue;
+            userArgs << line.split(' ', Qt::SkipEmptyParts);
+        }
+        argsFile.close();
+    }
+
+    // Handle potential naming variations in session data
+    QString username = SessionManager::instance().getUsername();
+    QString uuid = SessionManager::instance().getUuid();
+
+    QString version = instData["version"].toString();
+    QString mainClass = instData["mainClass"].toString();
+    QString jarName = instData.value("executableJar").toString(QString("Minecraft %1.jar").arg(version));
+    
+    // Determine asset index (usually major.minor, e.g., 1.21.1 -> 1.21) - This is a placeholder, needs actual parsing
+    QStringList verParts = version.split('.');
+    QString assetIndex = instData.contains("assetIndex") ? instData["assetIndex"].toString() : 
+                         ((verParts.size() >= 2) ? (verParts[0] + "." + verParts[1]) : version);
+    
+    QString javaPath = launcherSettings.value("java/path", "java").toString();
+
+    // Try to find the specific Java required for this version in our 'javas' folder
+    int reqMajor = GetRequiredJavaMajorVersion(version, instData["javaMajor"].toInt());
+    QDir javasDir(dataRoot + "javas");
+    QStringList candidates = javasDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QString &dir : candidates) {
+        // Look for folders like zulu-jdk-25 or jdk-17
+        if (dir.contains(QString::number(reqMajor))) {
+            QString binName = "java";
+#ifdef Q_OS_WIN
+            binName = "java.exe";
+#endif
+            QString detectedPath = dataRoot + "javas/" + dir + "/bin/" + binName;
+            if (QFile::exists(detectedPath)) {
+                javaPath = detectedPath;
+                break;
+            }
+        }
+    }
+
+    int globalRam = launcherSettings.value("java/ram", 2).toInt();
+
+    QString lwglVer = instData["lwjglVersion"].toString();
+    // Native path and classpath
+    QString cpSeparator = ";"; // Windows
+#ifndef Q_OS_WIN
+    cpSeparator = ":"; // Linux
+#endif
+
+    bool isLegacy = (version.startsWith("1.12") || version.contains("beta") || version.contains("alpha") || version.startsWith("1.0"));
+    int lwMajor = isLegacy ? 2 : (lwglVer.startsWith("3") ? 3 : 2);
+
+    QString absoluteLwglDir = dataRoot + "Lib/lwjgl-" + lwglVer;
+    QString sharedLibDir = dataRoot + "Lib";
+
+    // Use instance-specific natives folder if it exists, fallback to shared helper
+    QString absoluteNativesPath = (QDir(instDir + "/natives").exists()) ? (instDir + "/natives") : (absoluteLwglDir + "/natives");
+
+    // Fix: If a modloader is present, prioritize its JAR over the Vanilla executableJar
+    QString modloaderJar = instData.value("modloaderJar").toString();
+    QString absoluteJarPath = QDir(instDir).absoluteFilePath(!modloaderJar.isEmpty() ? modloaderJar : jarName);
+
+    QString classpath = absoluteJarPath;
+    QJsonArray libs = instData["libraries"].toArray();
+    for (const QJsonValue &l : libs) {
+        classpath += cpSeparator + QDir(sharedLibDir).absoluteFilePath(l.toString());
+    }
+
+    // Add isolated LWJGL and root Lib for non-maven artifacts (like 7za.exe)
+    classpath += cpSeparator + absoluteLwglDir + "/*";
+    classpath += cpSeparator + sharedLibDir + "/*";
+
+    QStringList processArgs;
+    processArgs << "-Xms" + minRam;
+    processArgs << "-Xmx" + maxRam;
+
+    // PermGen logic: Only apply for Java version < 8
+    if (reqMajor < 8 && !permGen.isEmpty()) {
+        processArgs << "-XX:MaxPermSize=" + permGen;
+    }
+
+    processArgs << QString("-Djava.library.path=%1").arg(absoluteNativesPath);
+    
+    // Common fix for legacy MC network crashes on modern Windows
+    processArgs << "-Djava.net.preferIPv4Stack=true";
+    
+    // Fix for Minecraft < 1.6 S3 Sound Crash
+    if (version.startsWith("1.0") || version.startsWith("1.1") || version.startsWith("1.2") || version.contains("beta") || version.contains("alpha")) {
+        // Proxy hack: Redirect network calls to a non-existent local proxy. 
+        // This forces a ConnectException which legacy resource threads skip, preventing the fatal FileNotFoundException from dead S3 buckets.
+        processArgs << "-Dhttp.proxyHost=127.0.0.1" << "-Dhttp.proxyPort=1";
+    }
+
+    processArgs << "-cp" << classpath;
+    processArgs << mainClass;
+
+    // Add Core Minecraft Arguments
+    processArgs << "--username" << username;
+    processArgs << "--version" << version;
+    processArgs << "--gameDir" << instDir;
+    processArgs << "--assetsDir" << dataRoot + "Assets";
+    processArgs << "--assetIndex" << assetIndex;
+    processArgs << "--uuid" << uuid;
+    processArgs << "--accessToken" << SessionManager::instance().getAccessToken();
+    processArgs << "--userType" << SessionManager::instance().getUserType();
+
+    // Fix for Minecraft 1.7.x - 1.12.x joptsimple error
+    if (version.startsWith("1.7") || version.startsWith("1.8") || version.startsWith("1.9") || version.startsWith("1.10") || version.startsWith("1.11") || version.startsWith("1.12")) {
+        processArgs << "--userProperties" << "{}";
+    }
+    
+    // Append cleaned user arguments
+    processArgs << userArgs;
+
+    mcProcess->setWorkingDirectory(instDir);
+
+    // Simplified & Safe Console Output
+    QStringList logArgs = processArgs;
+    for (int i = 0; i < logArgs.size(); ++i) {
+        if (logArgs[i] == "--accessToken") {
+            if (i + 1 < logArgs.size()) logArgs[i+1] = "********";
+        }
+    }
+
+    gameConsole->appendPlainText("--- Launching Minecraft ---");
+    gameConsole->appendPlainText("Java: " + javaPath);
+    gameConsole->appendPlainText("Args: " + logArgs.join(" ") + "\n");
+    
+    LogLauncherEvent("Launching " + instanceName + " (" + version + ")");
+
+    mcProcess->start(javaPath, processArgs);
+
+    playBtn->setText("STOP");
+});
+
+    connect(mcProcess, &QProcess::readyReadStandardOutput, this, [this]() {
+    gameConsole->appendPlainText(mcProcess->readAllStandardOutput());
+});
+connect(mcProcess, &QProcess::readyReadStandardError, this, [this]() {
+    gameConsole->appendPlainText(mcProcess->readAllStandardError());
+});
+
+connect(mcProcess, &QProcess::finished, this, [this]() {
+    playBtn->setText("PLAY");
+    LogLauncherEvent("Instance process finished.");
+});
+
+updateUserLabel();
+}
+
+MinecraftLauncher::~MinecraftLauncher() {}
+
+void MinecraftLauncher::closeEvent(QCloseEvent *event) {
+    QSettings s(getRJLDataPath() + "launcher.ini", QSettings::IniFormat);
+    s.setValue("launcher/width", width());
+    s.setValue("launcher/height", height());
+
+    // Save theme to frcthe.json if forced
+    QString dataRoot = getRJLDataPath();
+    QJsonObject obj;
+    obj["forced_theme"] = ThemeLoader::getSelectedTheme();
+    obj["is_forced"] = m_forceThemeCheck ? m_forceThemeCheck->isChecked() : false;
+    QFile f(dataRoot + "LTheme/frcthe.json");
+    if (f.open(QIODevice::WriteOnly)) {
+        f.write(QJsonDocument(obj).toJson());
+        f.close();
+    }
+
+    // Ensure Minecraft is closed if the launcher is exited
+    if (mcProcess && mcProcess->state() != QProcess::NotRunning) {
+        mcProcess->terminate();
+        if (!mcProcess->waitForFinished(2000)) mcProcess->kill();
+    }
+    event->accept();
+}
+
+void MinecraftLauncher::resizeEvent(QResizeEvent *event) {
+    QSettings s(getRJLDataPath() + "launcher.ini", QSettings::IniFormat);
+    s.setValue("launcher/width", width());
+    s.setValue("launcher/height", height());
+    QMainWindow::resizeEvent(event);
+}
+
+void MinecraftLauncher::updateUserLabel() {
+    // This function is called frequently, ensure it doesn't cause issues
+    // if welcomeLabel is not yet initialized.
+    if (!welcomeLabel) {
+        return;
+    }
+    SessionManager::instance().loadSession();
+    welcomeLabel->setText("Welcome, " + SessionManager::instance().getUsername());
+}
+
+// Note: PopulateInstanceList(QComboBox*) is now handled exclusively by instra_list.cpp 
+// to resolve the "multiple definition" linker error.
+
+void MinecraftLauncher::refreshInstanceList() {
+    if (!profileComboBox) return;
+    
+    profileComboBox->blockSignals(true);
+    profileComboBox->clear();
+
+    // Direct Directory Scanning: Bypasses potentially broken global helpers
+    QDir dir(getRJLDataPath() + "Instances");
+    if (dir.exists()) {
+        QStringList instances = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+        profileComboBox->addItems(instances);
+    }
+    
+    if (profileComboBox->count() > 0) profileComboBox->setCurrentIndex(0);
+    profileComboBox->blockSignals(false);
+    
+    updateUserLabel();
+}
+
+// Global function to refresh main window UI
+void RefreshMainWindowUI() {
+    for (QWidget *widget : QApplication::topLevelWidgets()) { //
+        if (MinecraftLauncher *launcher = qobject_cast<MinecraftLauncher*>(widget)) { //
+            launcher->refreshInstanceList(); //
+            break; //
+        }
+    }
+}
+
+void MinecraftLauncher::launchMinecraft() {
+    LogLauncherEvent("Launch sequence initiated. Preparing game environment...");
+}
+
+// --- Application Entry Point ---
+int main(int argc, char *argv[]) {
+    QApplication app(argc, argv);
+    
+    // Command Line Parser for /0.4/ Return of Console
+    QStringList args = app.arguments();
+    bool consoleEnabled = false;
+    bool forceOn = false;
+    bool forceAdmin = false;
+    bool memDisk = false;
+    bool noGui = false;
+
+    for (const QString &arg : args) {
+        if (arg == "console=on") consoleEnabled = true;
+        if (arg == "nogui=on") noGui = true;
+        if (arg == "force=on") forceOn = true;
+        if (arg == "force=admin") forceAdmin = true;
+        if (arg == "memdisk=on") memDisk = true;
+        if (arg.startsWith("display=")) {
+            QString res = arg.mid(8); // Parse 1920x1080 logic here if needed
+            if (res.contains("x")) {
+                QStringList dims = res.split("x");
+                // Optional: set window size logic here
+            }
+        }
+    }
+
+    if (memDisk) {
+        LogLauncherEvent("[MEMDISK] Initializing memory tracking segments...");
+    }
+
+#ifdef Q_OS_WIN
+    if (forceAdmin) {
+        // Check if already running as admin
+        bool isAdmin = false;
+        HANDLE hToken = NULL;
+        if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
+            TOKEN_ELEVATION elevation;
+            DWORD dwSize;
+            if (GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &dwSize)) {
+                isAdmin = elevation.TokenIsElevated;
+            }
+        }
+        if (hToken) CloseHandle(hToken);
+
+        if (!isAdmin) {
+            LogLauncherEvent("Relaunching with administrative privileges...");
+            QStringList execArgs = args;
+            execArgs.removeFirst(); // Remove the executable path
+            
+            // Use ShellExecute to trigger UAC prompt
+            HINSTANCE res = ShellExecuteW(NULL, L"runas", 
+                                          (LPCWSTR)app.applicationFilePath().utf16(), 
+                                          (LPCWSTR)execArgs.join(" ").utf16(), 
+                                          NULL, SW_SHOWNORMAL);
+            if ((intptr_t)res > 32) {
+                return 0; // Successfully relaunched
+            }
+            LogLauncherEvent("Failed to elevate: User cancelled or error occurred.");
+        }
+    }
+#endif
+
+#ifdef Q_OS_WIN
+    if (consoleEnabled) {
+        AllocConsole();
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+    }
+#endif
+
+    // Manually initialize embedded resources
+    Q_INIT_RESOURCE(banner_config);
+    Q_INIT_RESOURCE(api_config);
+
+#ifndef Q_OS_WIN
+    // For AppImage compatibility: ensure RJLData is created next to the AppImage file, not in the temp mount
+    if (!qgetenv("APPIMAGE").isEmpty()) {
+        QDir::setCurrent(QFileInfo(QString::fromLocal8Bit(qgetenv("APPIMAGE"))).absolutePath());
+    } else {
+        QDir::setCurrent(QCoreApplication::applicationDirPath());
+    }
+#else
+    QDir::setCurrent(QCoreApplication::applicationDirPath());
+#endif
+
+#ifndef Q_OS_WIN
+    RJMLWebView::initialize();
+#endif
+
+    app.setApplicationName(GetAppName());
+
+    // Prevent the app from quitting when the Splash Screen closes
+    QApplication::setQuitOnLastWindowClosed(false);
+
+    // 1. Initialize Theme System FIRST so the Splash is colored correctly
+    QString dataRoot = MinecraftLauncher::getRJLDataPath();
+    ThemeLoader::initialize();
+
+    // Theme persistence logic using frcthe.json
+    QString frcPath = dataRoot + "LTheme/frcthe.json";
+    QString activeTheme;
+    if (!QFile::exists(frcPath)) {
+        QDir().mkpath(dataRoot + "LTheme");
+        activeTheme = getAutoThemeName();
+        ThemeLoader::setSelectedTheme(activeTheme);
+        QJsonObject obj;
+        obj["forced_theme"] = ThemeLoader::getSelectedTheme();
+        obj["is_forced"] = false;
+        QFile f(frcPath);
+        if (f.open(QIODevice::WriteOnly)) {
+            f.write(QJsonDocument(obj).toJson());
+            f.close();
+        }
+    } else {
+        QFile f(frcPath);
+        if (f.open(QIODevice::ReadOnly)) {
+            QJsonObject obj = QJsonDocument::fromJson(f.readAll()).object();
+            activeTheme = obj["forced_theme"].toString();
+            f.close();
+        }
+    }
+    ThemeLoader::setSelectedTheme(activeTheme);
+    ThemeLoader::applyTheme();
+
+    // 2. Show Themed Splash Window
+    SplashWindow splash;
+    splash.show();
+    QApplication::processEvents();
+
+    // Perform update check while splash is visible (Splash Menu Updater)
+    UpdateInfo uInfo = CheckForUpdates();
+    bool hasUpdate = false;
+    int currentBuild = GetBuildNumber();
+    for (const auto &rel : uInfo.allReleases) {
+        if (rel.buildNumber > currentBuild) { hasUpdate = true; break; }
+    }
+
+    // Simulate or perform initialization logic (Legacy run() replaced by this window context)
+    // We'll give it a tiny delay to show the beautiful themed splash
+    QTimer::singleShot(1500, &splash, &QDialog::accept);
+    splash.exec();
+
+    // Initialize the main window ONLY after the splash screen has completed.
+    MinecraftLauncher w;
+    if (!noGui) w.show();
+    
+    w.showNormal(); // Ensure it isn't starting minimized
+
+    // On some Linux window managers, we need to defer activation slightly 
+    // to prevent the OS from losing the window handle during the splash transition.
+    QTimer::singleShot(100, &w, [&w]() {
+        w.raise();
+        w.activateWindow();
+    });
+
+    // Use a safety delay before re-enabling automatic shutdown. This prevents
+    // a "sudden death" race condition where the app might quit if the OS
+    // hasn't fully acknowledged the main window's presence yet.
+
+    QTimer::singleShot(500, &w, [&w, dataRoot, uInfo]() {
+        QApplication::setQuitOnLastWindowClosed(true);
+
+        QListWidget* list = w.findChild<QListWidget*>("updateList");
+        QTextBrowser* details = w.findChild<QTextBrowser*>("updateDetails");
+        QPushButton* installBtn = w.findChild<QPushButton*>("installUpdateBtn");
+        QTextBrowser* newsBrowser = w.findChild<QTextBrowser*>("newsBrowser");
+        QListWidget* fileList = w.findChild<QListWidget*>("fileList");
+        QLabel* currentVerLabel = w.findChild<QLabel*>("currentVerLabel");
+
+        if (currentVerLabel) {
+            currentVerLabel->setText("Current Build: " + QString::number(GetBuildNumber()));
+        }
+
+        if (list && details && installBtn && fileList) {
+            QObject::connect(list, &QListWidget::itemSelectionChanged, [list, details, installBtn, fileList]() {
+                QListWidgetItem *item = list->currentItem();
+                if (item) {
+                    details->setMarkdown(item->data(Qt::UserRole).toString());
+                    
+                    fileList->clear();
+                    QVariantList assets = item->data(Qt::UserRole + 1).toList();
+                    for (const QVariant &v : assets) {
+                        QVariantMap map = v.toMap();
+                        QListWidgetItem *fItem = new QListWidgetItem(map["name"].toString(), fileList);
+                        fItem->setData(Qt::UserRole, map["url"].toString());
+                    }
+                    installBtn->setEnabled(false);
+                } else {
+                    installBtn->setEnabled(false);
+                }
+            });
+            QObject::connect(fileList, &QListWidget::itemSelectionChanged, [fileList, installBtn]() {
+                installBtn->setEnabled(fileList->currentItem() != nullptr);
+            });
+
+            QObject::connect(installBtn, &QPushButton::clicked, [&w, list, fileList, dataRoot]() {
+                QListWidgetItem *selectedVersionItem = list->currentItem();
+                if (!selectedVersionItem) return;
+
+                // Identify target for update: Use APPIMAGE path if running as one, otherwise standard ELF path
+                QString rootExe = qApp->applicationFilePath();
+#ifndef Q_OS_WIN
+                if (!qgetenv("APPIMAGE").isEmpty()) {
+                    rootExe = QString::fromLocal8Bit(qgetenv("APPIMAGE"));
+                }
+#endif
+
+                // Rollback Backup: Move current binary to old/
+                QString oldDir = dataRoot + "LauncherUpdater/LauncherSource/old/";
+                QDir().mkpath(oldDir);
+                
+                // Build the rollback filename: RJML.u41.exe.old
+                QString prefix = LAUNCHER_BUILD_TYPE_SHORT;
+                int bNum = LAUNCHER_BUILD_NUMBER;
+                QString rollbackName = QString("RJML%1%2.exe.old").arg(prefix).arg(bNum);
+                
+                // Remove existing if any, then move (rename) current binary to old folder
+                QString fullOldPath = oldDir + rollbackName;
+                if (QFile::exists(fullOldPath)) QFile::remove(fullOldPath);
+                if (!QFile::copy(rootExe, fullOldPath)) {
+                    LogLauncherEvent("Warning: Failed to create rollback backup.");
+                }
+
+                QList<QPair<QString, QString>> filesToDownload;
+                QString downloadDir = dataRoot + "LauncherUpdater/LauncherSource/";
+                
+                QListWidgetItem *fileItem = fileList->currentItem();
+                if (!fileItem) {
+                    QMessageBox::information(&w, "No File Selected", "Please select a file to download.");
+                    return;
+                }
+                filesToDownload.append({fileItem->data(Qt::UserRole).toString(), downloadDir + fileItem->text()});
+
+                QDialog *downloadDialog = CreateDownloadProgressDialog(filesToDownload, &w);
+                ConnectDownloadDialogSignals(downloadDialog, &w, [w = &w, downloadDialog, dataRoot](bool success, const QList<QString>& downloadedFiles) {
+                    if (success && !downloadedFiles.isEmpty()) {
+                        QString mainPkg;
+                        for (const QString& path : downloadedFiles) {
+                            QFileInfo fi(path);
+                            QString suff = fi.suffix().toLower();
+                            if (suff == "exe" || suff == "zip") { mainPkg = fi.fileName(); break; }
+                        }
+                        if (!mainPkg.isEmpty() && success) {
+#ifdef Q_OS_WIN
+                            QString tool = QCoreApplication::applicationDirPath() + "/Tools/MadeChanges.exe";
+                            QString pkgPath = dataRoot + "LauncherUpdater/LauncherSource/" + mainPkg;
+                            if (QFile::exists(tool)) {
+                                QProcess::startDetached(tool, {"--update", pkgPath});
+                                QCoreApplication::quit();
+                            }
+#else
+                            TriggerLocalUpdate(mainPkg);
+#endif
+                        }
+                    }
+                    downloadDialog->deleteLater();
+                }, [downloadDialog](const QList<QString>&) { downloadDialog->deleteLater(); });
+                downloadDialog->exec();
+            });
+        }
+
+        QString newsHtml;
+
+        for (const auto &rel : uInfo.allReleases) {
+            // Populate Tab 1: News (Aggregate descriptions)
+            newsHtml += "# " + rel.tagName + (rel.isPreRelease ? " (Pre-release)" : " (Stable)") + "\n";
+            newsHtml += rel.description + "\n\n---\n\n";
+
+            // Populate Tab 2: Update Selection
+            QString label = QString("%1 (%2)").arg(rel.tagName, rel.isPreRelease ? "Pre-release" : "Stable");
+            QListWidgetItem *item = new QListWidgetItem(label, list);
+            item->setData(Qt::UserRole, rel.description);
+
+            QVariantList assetsData;
+            for (const auto &asset : rel.assets) {
+                QVariantMap map;
+                map["name"] = asset.name;
+                map["url"] = asset.url;
+                assetsData.append(map);
+            }
+            item->setData(Qt::UserRole + 1, assetsData);
+            item->setData(Qt::UserRole + 2, rel.buildNumber);
+        }
+
+        if (newsBrowser) {
+            if (newsHtml.isEmpty()) newsBrowser->setText("Launcher is up to date.");
+            else newsBrowser->setMarkdown(newsHtml);
+        }
+
+        w.m_bannerIndex = -1; // Reset to start rotation immediately from the new list
+        w.rotateBanner();
+    });
+
+    return app.exec();
+}
+//// END CORE.CPP ////
+
+after //// END "filename.cpp" ////
+want new file? do the same like 2:Core.h and rest of all do the same
+LINE STAMP need to be update because python script will read LINE STAMP and find #INCLUDE to //// END "filename.cpp" ////
+and generate file on folder that provided in frist like 1: Core.cpp to root/ <-- Core.cpp mean file to mean gen to root/ mean root of the project
+example 2: Core.h to root/ example 3: ThemeMakerCore.cpp to /LTHeme/ThemeMaker/
+when launch python will show screen and generate the all file provinded in LINE STAMP and it's line into file

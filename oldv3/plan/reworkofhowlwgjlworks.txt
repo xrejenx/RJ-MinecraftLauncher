@@ -1,0 +1,11 @@
+REWORK OF HOW LWGJL WORKS
+problem is right now we get stucked with lwgjl that look disgusting
+so after user hit "Create" it gonna check "BUT" it doesn't prepare lwjgl at all
+it gonna store lwgjl version continue with "Minecraft Assets" and "Java"
+after those two done it gonna start anorther download dialogs which is "LWGJL"
+now we know that /Lib is for LWGJL, 7zip, etc.
+so inside /Lib before we put lwgjl-version to there it gonna be
+/Lib/LWGJL/Minecraft/ <-- we gonna create like that mc use v2 it gonna create
+/Lib/LWGJL/Minecraft/v2/ <-- inside v2 gonna be place for lwgjl-version
+example /Lib/LWGJL/Minecraft/v2/lwjgl-2.9.4-nightly-20150209/ <-- here
+when that mc use v3 it gonna do same so this wont conflict anymore

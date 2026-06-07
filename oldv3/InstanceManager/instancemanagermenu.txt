@@ -1,0 +1,121 @@
+// Rewrite when player click "Edit profile" -> "Manage"
+// Rewrite when player click "New profile" -> "New"
+// DO NOT SIMULATE THIS
+in InstanceManager/ <--
+create Manageinstance.cpp
+this contain "Add minecraft instance button" "Move up or down of selected instance button" "Manage instance -> Open Instance (Or double click) Button" "Delete"
+"Java Settings -> Java Manager" <-- 
+
+"//" Example Ui "//"
+[Instance manager/////////////////////////////////////////////[x]
+|[Moveup]  	| [instancelist  ]   | [Add Minecraft Instance] |
+|[Movedown]	| |              |   | [Java Manager]           |
+|[Delete]  	| |              |   | [Open Instance Folder]   |
+|[Open Instance]| |______________|   |                          |
+|_______________|____________________|__________________________| // Make it square or like rectangle
+
+create insman.cpp
+this will handle when you hit "Open Instance"
+"//" Example Ui "//"
+[Instance//<InstanceName>////////////[x]
+|[//Info//]         |[Instance Name][Pencil //For edit name]
+|[Minecraft]  	    |[Minecraft : <Minecraft ver>]
+|[Packs]       	    |[LWJGL : LWJGL-<Ver>]
+|[Mods]             |
+|[Saves]            |
+|[Screentshots]     |
+|[Connect]          |
+|[Settings]         |
+|___________________|
+
+[Instance//<InstanceName>////////////[x]
+|[Info]             |[LWJGL : LWJGL-<Ver>]
+|[//Minecraft//]    |[Minecraft : <Minecraft ver>]
+|[Packs]       	    |[Intermidialy Mappings : <Ver> // If exist in mc version]
+|[Mods]             |[Loader : <Loader Fabric Forge, etc> - <LoaderVer> // If using modloader vanilla will not show]
+|[Saves]            |
+|[Screentshots]     |
+|[Connect]          |
+|[Settings]         |
+|___________________|
+
+[Instance//<InstanceName>//////////[x] Shaderpack/Resourcepack zip show or folder detect here like in prismlauncher
+|[Info]             |[Resourcepacks] |[List        ]|[Download]|<-- Resourcepack open RPLoad, Shaderpack open SDLoad
+|[Minecraft]        |[ShaderPacks]   |              |          |List will change depending on what you select
+|[//Packs//]        |________________|              |          |Resourcepack or Shaderpacks.
+|[Mods]             |[Delete]        |              |          |
+|[Saves]            |[Moveup]        |              |          |
+|[Screentshots]     |[Movedown       |              |          |
+|[Connect]          |                |              |          |
+|[Settings]         |                |              |          |
+|___________________|________________|______________|__________|
+
+[Instance//<InstanceName>/////////////////////////////////////////////////////////[x] Mods
+|[Info]             |[MoveDown]   | [Modloader : <Loadername>-<Ver>] |[Download mod]|
+|[Minecraft]        |[MoveUp]     | [Modlist show under Modloader]   |[Select all]  |<-- after select all became Deselect all
+|[Packs]       	    |[Delete]     |                                  |              |
+|[//Mods//]         |[Import jar] |                                  |              |
+|[Saves]            |             |                                  |              |
+|[Screentshots]     |             |                                  |              |
+|[Connect]          |             |                                  |              |
+|[Settings]         |[Open Folder]|                                  |              |
+|___________________|_____________|__________________________________|______________|
+
+[Instance//<InstanceName>//////////////////////////////////////////////////[x]
+|[Info]             |[MoveDown]   |[World/Save folder will show as list here]|
+|[Minecraft]        |[MoveUp]     |                                          |
+|[Packs]       	    |[Delete]     |                                          |
+|[Mods]             |             |                                          |
+|[//Saves//]        |             |                                          |
+|[Screentshots]     |             |                                          |
+|[Connect]          |             |                                          |
+|[Settings]         |[Open Folder]|                                          |
+|___________________|_____________|__________________________________________|
+
+
+[Instance//<InstanceName>//////////////////////////////////////////////////[x]
+|[Info]             |[MoveDown]   |[Screenshot folder will show here        ]|
+|[Minecraft]        |[MoveUp]     |                                          |
+|[Packs]       	    |[Delete]     |                                          |
+|[Mods]             |             |                                          |
+|[Saves]            |             |                                          |
+|[//Screentshots//] |             |                                          |
+|[Connect]          |             |                                          |
+|[Settings]         |[Open Folder]|                                          |
+|___________________|_____________|__________________________________________|
+
+[Instance//<InstanceName>///////////////////////////////////////////////[x]
+|[Info]             |[MoveDown]|[Server that saved will show here        ]|
+|[Minecraft]        |[MoveUp]  |[<Name>][ip:[showip][Online/Offline]      | //[showip] <-- this is button click it to expose the ip
+|[Packs]       	    |[Delete]  |                                          |
+|[Mods]             |[Refresh] |                                          | <-- Refresh to refrest status Online/Offline
+|[Saves]            |          |                                          |
+|[Screentshots]     |          |                                          |
+|[//Connect//]      |          |                                          |
+|[Settings]         |          |                                          |
+|___________________|__________|__________________________________________|
+
+[Instance//<InstanceName>/////////////////////////////////////////////////////////[x] // Grab settings from prismlauncher. 
+|[Info]             |[Java Settings]|[Server that saved will show here        ]     | //Java settings include Memory/PermSize/Java Directory per instance to be execute Settings get from every launcher
+|[Minecraft]        |[General]      |                                               | //Including Game window, Override Account. Settings get from every launcher
+|[Packs]       	    |[Tweaks]       |                                               | // Including Custom args, Warppers, Environment variables Settings get from every launcher
+|[Mods]             |[Perfromance]  |                                               | // Including Hardware Accelations and perfromance from every launcher
+|[Saves]            |[Miscellaneous]|                                               | // Including settings from prismlauncher 
+|[Screentshots]     |               |                                               |
+|[Connect]          |               |                                               |
+|[//Settings//]     |               |                                               |
+|___________________|_______________|_______________________________________________|
+
+
+When Instance is being created make file called
+instance.txt
+Contain 
+Instancename = 
+Minecraft = 
+Intermidialy Mappings =  // If exist in mc version
+Java requirements = 
+LWJGL = 
+Modloader = (DON'T CREATE ON VANILLA)
+
+this will get grab into Instance editor when you double click instance it read instance.txt in that instance folder
+and show it 

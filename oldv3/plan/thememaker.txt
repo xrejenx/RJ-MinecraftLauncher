@@ -1,0 +1,23 @@
+how to create theme (work over Build number 40)
+Create Folder / Copy existed folder in LTheme <--
+example DDark/ <-- win10 based on Fusion, 11 / Linux use native
+example LLight/ <-- win10 / 11 / Linux use native
+
+inside have structure as
+DDark <-- Roots
+DDark/ThemeImages <-- Not stable but for image (idk if it work)
+
+DDark/themeDDark.cfg <-- config 
+"themeDDark.cfg"
+theme_name=DDark <-- name exactly
+author=RJML_Default <-- maker author
+
+DDark/themeDDark.json
+"themeDDark.json"
+{
+    "accent": "#2D2D2D", <-- Accent color
+    "background": "#1E1E1E", <-- Background Color
+    "backgroundImage": "", <-- Background image
+    "border": "#454545", <-- Border Color
+    "text": "#D4D4D4" <-- Text Color
+}

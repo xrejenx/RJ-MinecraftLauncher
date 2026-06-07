@@ -1,0 +1,91 @@
+Also create exampletheme folder
+in exampletheme/ 
+there's example.cfg <-- config
+which are
+ 
+theme_name=LLight <-- leauncher on both linux and win must read .cfg and if that have theme_name= <-- anorther cfg files will be disable to read (in that folder e.g LTheme/limbo/ <-- when found cfg file like 1(/) 2(x) 3(x) so it stop read 2 and 3 in that folder
+author=RJML_Default <-- this will be name on select theme <--- it will show Selected theme : theme_name Author : author
+
+those grab from that (dynamicly) in each folder 
+
+example.json <-- contain "EVERYTHINGS" launcher can customize
+1 does launcher allowed button to be "CSS" (json is)
+{
+    //CONFIG//
+    "theme_color_time": "l" // 2 = use dark based
+    "theme_fusion_style_support": "1" // 2 = disable
+    "force_fusion_win10": "1" // 2 = disable work when use theme_color_time = 2
+    "bta_css": = "1" // 2 = deny or off
+    "bta_color_css": = "1" // 2 = deny or off
+    "bta_native": = "1" // 2 = fusion 3 = fusion light
+    "bta_conf_allow": = "1" // 2 = do not allow or disable bta and force to use native bta instead 3 = depending on bta_ <-- config
+    "background": = "1" // 2 = solid 3 = do not apply background 4 = use others theme background e.g "background": = "4, LTheme/DDark" <-- use 4 as option and point background to LTheme/DDark folder (this read json and apply theme as wanted)
+    "viewp_background": "1" // 2 = fusion 3 = native 4 = use others theme viewp_background (same as background option 4)
+    "force_background_image": "1" // 2 = disable
+    "custom_banner_css": 1 // 2 = disable
+    "custom_banner_text": "1" // 1 = use custom disable internal e.g read from "filename".banner <-- if found banner and custom banner text in json is enabled that theme is overwrite banner text also if can't read rename it to filename.banner -> filename.banner.txt <--
+    //COLORCONFIG//
+    --bta--
+
+    "bta_css_color": "hex color" // works when enable bta_css and bta_color_css does not work when enable bta_native this is color about button color on CSS 
+    "bta_css_curve": "numpx" // works when enable bta_css and bta_color_css do make css mode button curved
+
+    --ui--
+    "background_solid": "hex color" // works when enable background with mode 2 and 1 and force_background_image = 2
+    "viewp_background": "hex color" // works when enable viewp_background with mode 2 and 1 and force_background_image = 2
+    "background_image": "path start from LTheme/current folder" // work when enable force_background_image = 1
+
+    --banner--
+    "banner_css_theme": "light" // dark = use dark mode based, auto = use theme css color set or theme_color_time
+    "banner_css_color": "hex color"// work when enable custom_banner_css = 1
+    "banner_css_border_color": "hex color"// work when enable custom_banner_css = 1
+    "banner_css_light_inverted": "1" // 1 = use inverted color when on light mode 2 = use inverted color when on dark mode work when enable custom_banner_css = 1
+    "banner_css_force": "auto" // auto = use based on device theme color Dark use fusion if win10 others native, Light use native win10 also, fusion works when have theme_fusion_style_support = 1 force banner to use fusion button like with css, native works when theme_fusion_style_support = 2 so banner will use native to render with css
+    "banner_text_force": "custom" // custom = use that folder .banner files to display text e.g LTheme/mytheme/hva.banner <--- this file, launcher for using default banner text loop 
+}
+create ThemeMakerCore.cpp inside <-- this contain bellow contents and make theme is much easier!
+RJ-MinecraftLauncher/LTheme/ThemeMaker/ <--
+"ThemeMaker" is standalone app included in Tools/ <-- used to customize/create theme realtime for RJLauncher
+Windows is ThemeMaker.exe, linux is ThemeMaker.appimage (use version structure same as MadeChanges.exe)
+in linux now ship "Tools" with the appimage RJML and Tools/ThemeMaker
+ALSO THIS DOES NOT GOING TO IMPORVE SOME CODE IT JUST CREATE ThemeMakerCore.cpp LIKE MADECHANGE! DO IT
+those are program called "ThemeMaker.exe" inside Tools/ <-- you can launch it from Launcher by go to Theme tab and hit button next to Open <-- called "Make"
+after ThemeMaker.exe popup the interface is like
+
+[//////////////////////[x]]
+|/Theme/ |
+|helloth | <-- this grab from RJLData/LTheme/ <-- search every folder for .cfg and display here
+|woorld  |
+|DDark   |
+|LLight  |
+| CREATE | <-- create new folder with new project with all new 
+
+CREATE Interface will look like this
+
+[//////////////////////[x]]
+Project name [input box]
+Author name [input box]
+Target [checkbox]Dark | [checkbox]Light (ONLY 1 IS SELECTABLE)
+Fusion [checkbox]
+        [Cancel][Create]
+
+afeter create the folder should appear LTheme/ <--
+with Project name 
+everythings include
+projectname.cfg , author get from Author name
+projectname.json <-- don't forget to grab Target and fusion settings to like i show you example.json, also get all json settings sit there
+after that we gonna continue with config guis
+
+
+when select one from left panel
+
+[//////////////////////[x]]
+|Theme     |                 <-- every function from example.json will appear here as customizable Tab, 3 tab Button, Guis, Banner
+|/helloth/ |                 <-- when create new project or open exist theme project "it's change launcher theme" dynamicly with use changes
+|woorld    |
+|DDark     |
+|LLight    |
+|  CREATE  |
+
+
+

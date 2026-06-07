@@ -1,0 +1,163 @@
+================================================================================
+RJ-MINECRAFTLAUNCHER PROJECT STRUCTURE & DEPENDENCY TREE
+================================================================================
+
+[PROJECT ROOT]
+│
+├─ WDLauncher (Primary Application Executable)
+├─ RJ-MinecraftLauncher (Main Solution / Binary: WDLauncher.exe)
+│  │
+│  ├─ Core.cpp / Core.h (THE HEART: Manages Main Window, Tabs, and MC Launching)
+│  │  ├─ ---[+] ConsoleOutput.cpp (Global Path Handler & Event Logger)
+│  │  │        └─ Provides: MinecraftLauncher::getRJLDataPath() [Used by ALL files]
+│  │  ├─ ---[+] Core.h (Application Class Definition & Signal Map)
+│  │  ├─ ---[+] ConsoleOutput.cpp (Global Path Handler & Low-level Logging)
+│  │  │        └─ MinecraftLauncher::getRJLDataPath() -> Used by EVERY file for I/O
+│  │  │
+│  │  ├─ ---[+] LTheme/Themeloader.cpp (Advanced Theme Engine)
+│  │  │        ├─ ---[+] LTheme/desktoptheme.cpp (OS-Level Dark/Light detection)
+│  │  │        ├─ ---[+] LTheme/theme.cpp (UI Interface for Theme Application)
+│  │  │        └─ Note: Duplicate at Profile_java/INSTANCES_MANAGER/ is EXCLUDED.
+│  │  ├─ ---[+] LTheme/ (UI & Style Management)
+│  │  │        ├─ ---[+] Themeloader.cpp / Themeloader.h (JSON-driven Style Engine)
+│  │  │        ├─ ---[+] desktoptheme.cpp / desktoptheme.h (Win32/Linux Dark Mode Hooks)
+│  │  │        └─ ---[+] theme.cpp / theme.h (Global Style Entry Points)
+│  │  │
+│  │  ├─ ---[+] Account/AddAccount.cpp (Account Management & Auth UI)
+│  │  │        ├─ ---[+] Account/SESSIONMANAGER/sessionman.h (Active Session Logic)
+│  │  │        └─ ---[+] webview.h (Microsoft OAuth2 / WebView2 Integration)
+│  │  ├─ ---[+] Account/ (Authentication Subsystem)
+│  │  │        ├─ ---[+] AddAccount.cpp / AddAccount.h (Login UI logic)
+│  │  │        ├─ ---[+] SESSIONMANAGER/sessionman.h (Profile persistence & Auth tokens)
+│  │  │        └─ ---[+] webview.h (WebView2/WebEngine container for Microsoft Login)
+│  │  │
+│  │  ├─ ---[+] minecraft/icon/iconman.h (Icon Set Manager)
+│  │  │        └─ Sources: rjiconset/ico and rjiconset/png sets.
+│  │  ├─ ---[+] minecraft/ (Game Logic & Assets)
+│  │  │        ├─ ---[+] icon/iconman.cpp / iconman.h (Instance-specific icon sets)
+│  │  │        └─ ---[+] instra_list.cpp (Instance directory scanner & population)
+│  │  │
+│  │  ├─ ---[+] LauncherUpdater/LauncherFetch/fetch.cpp (Version Checker)
+│  │  │        └─ Points to: GitHub/Version endpoints for Build Tracking.
+│  │  ├─ ---[+] LauncherUpdater/ (Auto-Update Engine)
+│  │  │        ├─ ---[+] LauncherFetch/fetch.cpp (Version lookup via GitHub API)
+│  │  │        └─ ---[+] LauncherDownload/downloadzip.cpp (Async ZIP payload downloader)
+│  │  │
+│  │  ├─ ---[+] LauncherUpdater/LauncherDownload/downloadzip.cpp (Update Extractor)
+│  │  │        └─ Dependency: 7za.exe (assets/7zip/) for extraction logic.
+│  │  ├─ ---[+] LauncherPatch/ (Build Metadata)
+│  │  │        └─ ---[+] version.cpp / version.h (Build number & Type: undev/beta/release)
+│  │  │
+│  │  └─ ---[+] LauncherPatch/version.cpp (Build Number & Prefix Metadata)
+│  │  └─ ---[+] JVM/ (Java Downloader & Manager)
+│  │           └─ ---[+] ShowJVMDownloaderNew (Internal tool for JDK fetching)
+│  │
+│  └─ Core UI Sub-Tabs (Linked to Core.cpp)
+│     ├─ ModernUpdateTab (LauncherUpdate Tab)
+│     ├─ InstanceGrid (Dynamic Scroll Area with Grouping)
+│     └─ GameOutput (Real-time mcProcess log viewer)
+│  └─ Core UI Components (Sub-objects of MinecraftLauncher)
+│     ├─ ---[+] InstanceGrid (Dynamic ScrollArea + Group Management + Desktop Snap)
+│     ├─ ---[+] ModernUpdateTab (Markdown-based release notes browser)
+│     ├─ ---[+] GameOutput (QPlainTextEdit viewport for QProcess standard output)
+│     └─ ---[+] SplashWindow (Themed QDialog shown during boot)
+│
+├─ ThemeMaker.exe (Standalone Tool - located in Tools/)
+├─ Tools/ThemeMaker.exe (Standalone Project Manager)
+│  │
+│  ├─ LTheme/ThemeMaker/ThemeMakerCore.cpp (Main Entry for Theme Creation)
+│  │  ├─ ---[+] Core.h (Points to Project Data Root)
+│  │  ├─ ---[+] ConsoleOutput.cpp (Shared Logging Service)
+│  │  ├─ ---[+] QColorDialog Integration (Real-time Color Picking)
+│  │  └─ ---[+] QScrollArea Config Tab (JSON Schema Editor)
+│  │  ├─ ---[+] Core.h (For shared data paths)
+│  │  ├─ ---[+] ConsoleOutput.cpp (For shared logging system)
+│  │  ├─ ---[+] QColorDialog (System-level screen color sampling)
+│  │  └─ ---[+] QScrollArea (Handles the large JSON config schema UI)
+│  │
+│  └─ Logic Flow: UI -> JSON Generation -> Save to LTheme/themes/<name>/
+│  └─ OUTPUT: Generates <Name>.json and <Name>.cfg to RJLData/LTheme/themes/
+│
+├─ RJLInstaller.exe (Standalone Windows Installer)
+├─ RJLInstaller.exe (Windows Deployment Tool)
+│  │
+│  ├─ Windows/WinInstaller/installer.cpp (Primary Installation Logic)
+│  │  ├─ ---[+] LauncherUpdater/LauncherFetch/fetch.cpp (Finds latest build)
+│  │  ├─ ---[+] LauncherUpdater/LauncherDownload/downloadzip.cpp (Installs payload)
+│  │  ├─ ---[+] ConsoleOutput.cpp (Installs logs)
+│  │  └─ ---[+] LauncherUrls/urldetector.cpp (Resolves download mirrors)
+│  ├─ Windows/WinInstaller/installer.cpp (Extraction & Registry Logic)
+│  │  ├─ ---[+] LauncherFetch/fetch.cpp (Fetches stable binary)
+│  │  ├─ ---[+] LauncherDownload/downloadzip.cpp (Downloads main package)
+│  │  └─ ---[+] LauncherUrls/urldetector.cpp (Mirror resolution logic)
+│  │
+│  └─ Resources: details_generated.rc (Embedded Metadata), RJINSTICON.ico
+│  └─ ASSET: details_generated.rc (Executable metadata/manifest)
+│
+└─ MadeChanges.exe (Standalone Rollback & Update Tool - located in Tools/)
+└─ Tools/MadeChanges.exe (The Live Patcher / Hot-Swapper)
+   │
+   ├─ Windows/WinInstaller/MadeChanges.cpp (Hot-swap & Rollback Logic)
+   │  ├─ ---[+] ConsoleOutput.cpp (Path Handling for parent directory)
+   │  ├─ ---[+] LauncherUpdater/LauncherDownload/downloadzip.cpp
+   │  └─ ---[+] LauncherPatch/version.cpp
+   ├─ Windows/WinInstaller/MadeChanges.cpp (File locking & replacement logic)
+   │  ├─ ---[+] ConsoleOutput.cpp (Required to locate parent RJML.exe)
+   │  └─ ---[+] LauncherUpdater/LauncherDownload/downloadzip.cpp (Rollback support)
+   │
+   └─ Logic Flow: Launcher -> Download Update -> Call MadeChanges -> Close Launcher -> Swap Files.
+   └─ WORKFLOW: WDLauncher -> Download -> Run MadeChanges -> WDLauncher Exit -> Replace -> Relaunch.
+
+================================================================================
+EXTERNAL LINKS & ASSETS
+EXTERNAL BINARY DEPENDENCIES
+================================================================================
+
+Assets/7zip/
+└─ 7za.exe (Main compression engine used by DownloadZip and MadeChanges)
+assets/7zip/7za.exe
+└─ Used by: WDLauncher, RJLInstaller, MadeChanges
+   (Requirement for .zip extraction of Minecraft assets and Launcher updates)
+
+RJLData/LTheme/
+├─ theme.json (Active theme selection)
+├─ frcthe.json (Theme persistence/force flags)
+└─ themes/<ThemeName>/
+   ├─ theme<Name>.json (The Main Config described in newthemesystem.txt)
+   ├─ theme<Name>.cfg (Metadata for Selector UI)
+   └─ <Name>.banner (Custom text slide content)
+WebView2Loader.dll (Windows Only)
+└─ Used by: WDLauncher (Required for webview.h / Microsoft Login)
+
+RJLData/userdata/
+└─ [OFFLINE | MICROSOFT | ELYBY] (Account JSON profiles managed by sessionman.h)
+================================================================================
+RJLData FOLDER SCHEMATICS (ROOT)
+================================================================================
+
+RJLData/
+├─ launcher.ini (Global user settings: RAM, Java path, Window size, Groups)
+├─ LTheme/
+│  ├─ theme.json (Current selection)
+│  ├─ frcthe.json (Force-apply persistence flags)
+│  └─ themes/
+│     └─ <Name>/
+│        ├─ theme<Name>.json (Style configuration)
+│        ├─ theme<Name>.cfg (Display metadata)
+│        └─ ThemeImage/ (Custom background/icon assets)
+│
+├─ Instances/
+│  └─ <InstanceName>/
+│     ├─ instance.json (Minecraft versioning & libraries)
+│     ├─ instance.txt (Legacy/Metadata config: Group, RAM overrides)
+│     ├─ natives/ (LWJGL dynamic libraries)
+│     └─ icon/ (Instance-specific branding)
+│
+├─ Lib/ (Shared .jar libraries for all versions)
+├─ javas/ (Managed JRE/JDK installations)
+├─ Assets/ (Minecraft global assets folder)
+└─ userdata/
+   ├─ [OFFLINE].json
+   ├─ [MICROSOFT].json
+   └─ [ELYBY].json
+================================================================================
