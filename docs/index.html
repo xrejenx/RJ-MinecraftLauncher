@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>RJLauncher</title>
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/xrejenx/RJLauncher/RJL/readme/Icon/icon.png" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* Reset + base */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    
+    :root {
+      --font-display: "Outfit", "Segoe UI Variable Display", "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+      --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Monaco, Consolas, monospace;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: #030303;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased; 
+      -moz-osx-font-smoothing: grayscale;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    /* GLOBAL MOVING BACKGROUND */
+    .bg-container {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+      filter: blur(90px); opacity: 0.18; transform: translate3d(0,0,0);
+    }
+    .blob { 
+      position: absolute; width: 550px; height: 550px; border-radius: 50%; 
+      mix-blend-mode: screen; will-change: transform;
+    }
+    .blob.b1 { 
+      background: radial-gradient(circle, #ff5500 0%, transparent 70%); 
+      left: -10%; top: -10%; 
+      animation: driftOrange 28s ease-in-out infinite alternate; 
+    }
+    .blob.b2 { 
+      background: radial-gradient(circle, #00a2ff 0%, transparent 70%); 
+      right: -10%; top: 30%; 
+      animation: driftBlue 32s ease-in-out infinite alternate; 
+    }
+    .blob.b3 { 
+      background: radial-gradient(circle, #9b6bff 0%, transparent 70%); 
+      left: 30%; bottom: -10%; 
+      animation: driftPurple 36s ease-in-out infinite alternate; 
+    }
+
+    @keyframes driftOrange {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(60vw, 40vh) scale(1.2); }
+      100% { transform: translate(20vw, 80vh) scale(0.9); }
+    }
+    @keyframes driftBlue {
+      0% { transform: translate(0, 0) scale(1.1); }
+      50% { transform: translate(-50vw, 30vh) scale(0.8); }
+      100% { transform: translate(-20vw, -40vh) scale(1.2); }
+    }
+    @keyframes driftPurple {
+      0% { transform: translate(0, 0) scale(0.9); }
+      40% { transform: translate(30vw, -60vh) scale(1.3); }
+      100% { transform: translate(-30vw, -20vh) scale(1); }
+    }
+
+    /* NAV */
+    nav {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 40px;
+      background: rgba(3, 3, 3, 0.35);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      gap: 12px;
+      position: sticky; top: 0; z-index: 60;
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      transform: translate3d(0,0,0);
+    }
+    nav .left { display: flex; align-items: center; }
+    nav a {
+      color: rgba(255, 255, 255, 0.75); text-decoration: none; margin: 0 16px;
+      position: relative; transition: transform .22s ease, color .22s ease;
+      font-weight: 600; letter-spacing: -0.1px; font-size: 0.95rem; cursor: pointer; font-family: var(--font-display);
+    }
+    nav a::after {
+      content: ""; position: absolute; left: 0; bottom: -6px; width: 100%; height: 2px;
+      background: linear-gradient(90deg, #ff6600, #ffaa00);
+      transform: scaleX(0); transform-origin: right; transition: transform .28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    nav a:hover::after { transform: scaleX(1); transform-origin: left; }
+    nav a:hover { transform: translateY(-1px); color: #fff; }
+
+    /* Page container */
+    .page {
+      display: none; flex: 1; flex-direction: column; align-items: center; justify-content: flex-start;
+      text-align: center; padding: 40px 24px; min-height: calc(100vh - 72px); opacity: 0;
+      transform: translateY(12px); transition: opacity 380ms cubic-bezier(.2, .9, .2, 1), transform 380ms cubic-bezier(.2, .9, .2, 1);
+      position: relative; z-index: 2;
+    }
+    .page.active { display: flex; opacity: 1; transform: translateY(0); }
+    .page.exiting { opacity: 0; transform: translateY(-12px); }
+
+    /* HERO */
+    .hero { width: 100%; max-width: 1200px; margin: 24px auto 48px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+    .shimmer-text {
+      background: linear-gradient(90deg, #ff6600, #fff, #ff6600); background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: shimmer 5s linear infinite;
+    }
+    h1, h2, h3, h4 { font-family: var(--font-display); }
+    .hero h1 {
+      font-size: 3.5rem; font-weight: 800; line-height: 1.1; letter-spacing: -1.5px;
+      filter: drop-shadow(0 6px 24px rgba(255, 102, 0, 0.15));
+      margin-bottom: 6px; text-align: center;
+    }
+    @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+    .hero p { color: #a3a3a3; max-width: 680px; font-size: 1.1rem; line-height: 1.6; }
+
+    /* FLAT MODE OVERRIDES */
+    body.flat-mode { background: #0a0a0a; color: #fff; }
+    body.flat-mode .bg-container { display: none; }
+    body.flat-mode nav { backdrop-filter: none; background: #111; border-bottom: 1px solid #222; }
+    body.flat-mode nav a { color: #888 !important; }
+    body.flat-mode nav a:hover { color: #ff6600 !important; }
+    body.flat-mode nav a::after { display: none; }
+    
+    /* Hero Layout Change for Flat Mode */
+    body.flat-mode .hero { align-items: flex-start; text-align: left; }
+    body.flat-mode .hero h1 { text-align: left; -webkit-text-fill-color: #fff !important; }
+    body.flat-mode .hero p { text-align: left; max-width: 500px; }
+    body.flat-mode .panel-wrapper { 
+      perspective: 1400px; display: grid; grid-template-columns: 0.8fr 1.4fr; gap: 60px; 
+      align-items: center; max-width: 1200px; width: 100%; margin-top: 40px;
+    }
+    body.flat-mode .panel { 
+      background: none !important; border: none !important; 
+      box-shadow: none !important; padding: 0 !important;
+      border-radius: 0 !important; transition: transform .6s cubic-bezier(.16, 1, .3, 1) !important;
+    }
+    body.flat-mode .panel.left { display: block; order: 2; transform: rotateY(-18deg) rotateX(4deg) !important; }
+    body.flat-mode .panel.left:hover { 
+      transform: rotateY(-6deg) rotateX(2deg) scale(1.04) !important; 
+    }
+    body.flat-mode .panel.right { display: none; }
+    body.flat-mode .panel img { 
+      max-width: 100%; max-height: none; width: 100%; height: auto; border: none; border-radius: 0;
+    }
+    body.flat-mode .center-icon { display: none; }
+    body.flat-mode .center-download { justify-content: flex-start; }
+    
+    /* OS Filters styled like the PNG Header */
+    body.flat-mode .filters { 
+      background: #111; border-radius: 4px; border: 1px solid #222; padding: 0; width: 100%; max-width: 100%;
+      display: flex; gap: 0; overflow: visible;
+    }
+    body.flat-mode .filters button { 
+      border-radius: 0; padding: 20px; border: none; color: #777; font-weight: 700; flex: 1; transition: none;
+    }
+    body.flat-mode .filters button.active { 
+      background: #1a1a1a; color: #fff;
+    }
+    body.flat-mode .glass-slider { 
+      background: transparent; border: none; border-bottom: 3px solid #ff6600; border-radius: 0;
+      top: auto; bottom: 0; height: 3px; display: block; z-index: 5;
+    }
+
+    /* Release Cards styled like Installer boxes */
+    body.flat-mode .release, 
+    body.flat-mode .latest-card,
+    body.flat-mode .changelog-sidebar { 
+      background: #111 !important; border: 1px solid #222 !important; border-radius: 10px !important;
+      box-shadow: none !important; transform: none !important; padding: 32px !important;
+    }
+    body.flat-mode .latest-card {
+      display: grid; grid-template-columns: 1fr 1.2fr; gap: 40px; max-width: 100% !important; align-items: start;
+    }
+    body.flat-mode .latest-card .release-header { grid-column: 1 / -1; margin-bottom: 24px; }
+    body.flat-mode .latest-card .desc { max-height: none; grid-column: 1; }
+    body.flat-mode .latest-card .release-footer { grid-column: 1; border-top: none; padding-top: 0; flex-direction: column; align-items: stretch; gap: 16px; }
+    body.flat-mode .flat-preview { display: block !important; grid-column: 2; grid-row: 2 / 4; }
+
+    body.flat-mode .release h3 { color: #fff !important; font-size: 2rem !important; }
+    body.flat-mode .desc { color: #aaa !important; font-size: 1rem !important; }
+
+    /* Buttons styled like solid Launcher buttons */
+    body.flat-mode .download-btn {
+      background: #ff6600 !important; color: #fff !important; border-radius: 4px !important;
+      border: none !important; font-weight: 700 !important; transform: none !important; box-shadow: none !important;
+      padding: 16px 24px !important; width: 100%; text-align: center; justify-content: center;
+    }
+    body.flat-mode .download-btn:hover { background: #e65c00 !important; }
+    body.flat-mode .download-btn.secondary { 
+      background: #222 !important; color: #aaa !important; width: auto; border: 1px solid #333 !important;
+    }
+
+    /* UI Typography Fixes */
+    body.flat-mode .shimmer-text { background: none !important; -webkit-text-fill-color: #fff !important; animation: none !important; filter: none !important; }
+    body.flat-mode .hero h1, 
+    body.flat-mode .shimmer-text,
+    body.flat-mode h1, body.flat-mode h2, body.flat-mode h3, body.flat-mode h4 { 
+      color: #fff !important; -webkit-text-fill-color: #fff !important;
+    }
+    body.flat-mode p, body.flat-mode .meta, body.flat-mode .desc, body.flat-mode .log-body { color: #aaa !important; }
+    body.flat-mode .download-area h1 { text-align: left !important; font-size: 3rem !important; }
+    body.flat-mode .download-area p { text-align: left !important; }
+    body.flat-mode #allViewSubtitle { color: #777 !important; }
+
+    body.flat-mode .log-node::after { background: #ff6600 !important; }
+    body.flat-mode .log-node::before, body.flat-mode .tag-dot { background: #000 !important; border: 2px solid #ff6600 !important; box-shadow: none !important; }
+    
+    body.flat-mode .type-toggle, body.flat-mode .tag-item { 
+      border: 1px solid #333 !important; color: #888 !important; border-radius: 4px !important;
+    }
+    body.flat-mode .type-toggle.active, body.flat-mode .tag-item.active { background: #222 !important; color: #ff6600 !important; border-color: #ff6600 !important; }
+
+    /* LIGHT MODE OVERRIDES */
+    body.light-mode { background: #f7f7f7; color: #1a1a1a; }
+    body.light-mode.flat-mode { background: #f0f0f0; }
+    body.light-mode .bg-container { opacity: 0.18; filter: blur(90px); }
+    body.light-mode .blob { mix-blend-mode: multiply; }
+    body.light-mode nav { background: rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(0,0,0,0.08); }
+    body.light-mode.flat-mode nav { background: #fff; border-bottom: 1px solid #ddd; }
+    body.light-mode #update h1 { background: linear-gradient(90deg, #111, #555) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; }
+    body.light-mode .log-identity-line { color: #666 !important; }
+    body.light-mode .log-node::after { background: rgba(255, 102, 0, 0.15) !important; }
+    body.light-mode .log-body h1, body.light-mode .log-body h2, body.light-mode .log-body h3 { color: #000 !important; }
+    body.light-mode .log-body pre { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); }
+    body.light-mode .log-body code { background: rgba(0,0,0,0.05); color: #e65c00; }
+    body.light-mode nav a { color: #444 !important; }
+    body.light-mode nav a:hover { color: #000 !important; }
+    body.light-mode .hero p { color: #444 !important; }
+    body.light-mode .meta { color: #777 !important; }
+    body.light-mode .desc, body.light-mode .log-body { color: #333 !important; }
+    body.light-mode h1, body.light-mode h2, body.light-mode h3, body.light-mode h4 { color: #111 !important; }
+    body.light-mode .shimmer-text { background: linear-gradient(90deg, #ff6600, #000, #ff6600); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    body.light-mode .release, body.light-mode .latest-card, body.light-mode .changelog-sidebar { 
+      background: #fff !important; border-color: rgba(0,0,0,0.1) !important; box-shadow: 0 10px 40px rgba(0,0,0,0.06) !important;
+    }
+    body.light-mode .filters { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.08); }
+    body.light-mode .filters button { color: #777; }
+    body.light-mode .filters button.active { color: #ff6600; }
+    body.light-mode .tag-item, body.light-mode .type-toggle { background: rgba(0,0,0,0.03); color: #666; border-color: rgba(0,0,0,0.08); }
+    body.light-mode .tag-item.active { background: rgba(0, 162, 255, 0.1); color: #007acc; }
+    body.light-mode .type-toggle.active { background: rgba(255, 102, 0, 0.1); color: #e65c00; }
+    body.light-mode .download-btn { background: #ff6600; color: #fff; border-color: #e65c00; }
+    body.light-mode .download-btn:hover { background: #e65c00; color: #fff; }
+    body.light-mode .download-btn.secondary { background: #fff; color: #444; border-color: #ddd; }
+    body.light-mode .download-btn.secondary:hover { background: #f0f0f0; color: #000; border-color: #ccc; }
+    body.light-mode .panel { background: none; border: none; box-shadow: none; }
+    body.light-mode #discordOverlay .overlay-content { background: #fff !important; border-color: #ddd !important; box-shadow: 0 40px 100px rgba(0,0,0,0.1) !important; }
+    body.light-mode #discordOverlay h2 { color: #000 !important; }
+    body.light-mode #allViewSubtitle { color: #666 !important; }
+    body.light-mode #discordOverlay .close-btn { color: #111; }
+    body.light-mode .shimmer-text { filter: none !important; }
+    body.light-mode nav span { color: #888 !important; }
+    body.light-mode.flat-mode .hero h1, body.light-mode.flat-mode h1, body.light-mode.flat-mode h2, body.light-mode.flat-mode h3, body.light-mode.flat-mode .shimmer-text { 
+      color: #111 !important; -webkit-text-fill-color: #111 !important; 
+    }
+
+    /* Panels */
+    .panel-wrapper { display: flex; align-items: center; justify-content: center; gap: 32px; perspective: 1400px; flex-wrap: wrap; margin-top: 16px; }
+    .panel {
+      background: none; overflow: visible; transition: transform .6s cubic-bezier(.16, 1, .3, 1);
+      cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
+      border: none; width: auto; height: auto;
+    }
+    .panel img { display: block; width: auto; height: auto; max-width: 340px; max-height: 240px; object-fit: contain; border-radius: 0; }
+    .panel.left { transform: rotateY(16deg) translateY(2px); }
+    .panel.right { transform: rotateY(-16deg) translateY(2px); }
+    .panel:hover { transform: rotateY(0deg) scale(1.05) translateY(-4px); }
+
+    .center-icon { width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; border-radius: 24px; }
+    .center-icon img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 20px 50px rgba(255, 102, 0, 0.18)); }
+
+    /* Frosted Blur Buttons */
+    .center-download { margin-top: 16px; display: flex; gap: 12px; align-items: center; justify-content: center; }
+    .download-btn {
+      background: rgba(255, 102, 0, 0.08); color: #ff8833; padding: 14px 28px; border-radius: 14px; font-weight: 600;
+      text-decoration: none; border: 1px solid rgba(255, 102, 0, 0.25); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font-family: var(--font-display);
+      letter-spacing: -0.2px; transition: all .25s cubic-bezier(0.16, 1, .3, 1); transform: translate3d(0,0,0); will-change: transform; cursor: pointer;
+    }
+    .download-btn:hover {
+      background: rgba(255, 102, 0, 0.22); color: #fff; border-color: rgba(255, 102, 0, 0.5);
+      transform: translate3d(0, -4px, 0); box-shadow: 0 16px 32px rgba(255, 102, 0, 0.15);
+    }
+    .download-btn.secondary {
+      background: rgba(255, 255, 255, 0.05); color: #ccc; border-color: rgba(255, 255, 255, 0.1);
+    }
+    .download-btn.secondary:hover {
+      background: rgba(255, 255, 255, 0.1); color: #fff; border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* DOWNLOAD LAYOUT */
+    .download-area { width: 100%; max-width: 1200px; margin: 24px auto 40px; display: flex; flex-direction: column; gap: 24px; padding: 0 16px; }
+
+    /* MACOS LIQUID GLASS FILTER HOUSING (TABS) */
+    .filters { 
+      position: relative; display: flex; background: rgba(15, 15, 15, 0.4); padding: 5px; 
+      border: 1px solid rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      white-space: nowrap; width: max-content; border-radius: 14px; margin: 0 auto 24px;
+    }
+    .filters button { 
+      position: relative; padding: 12px 32px; border-radius: 10px; border: none; background: transparent; 
+      color: rgba(255,255,255,0.6); font-weight: 600; font-size: 1rem; cursor: pointer; 
+      transition: color 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s; z-index: 2; white-space: nowrap; font-family: var(--font-display);
+    }
+    .filters button:hover:not(.disabled) { color: #fff; }
+    .filters button.active { color: #ff8833; }
+    .filters button.disabled { opacity: 0.3; cursor: not-allowed; }
+    
+    /* Elastic backdrops */
+    .glass-slider {
+      position: absolute; top: 5px; left: 5px; height: calc(100% - 10px);
+      background: rgba(255, 102, 0, 0.14); border: 1px solid rgba(255, 102, 0, 0.3);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      border-radius: 10px; z-index: 1; pointer-events: none;
+      transition: all 0.35s cubic-bezier(0.25, 1, 0.3, 1.18);
+    }
+
+    /* View Containers */
+    .view-container { display: none; width: 100%; animation: fadeUp 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+    .view-container.active { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 3-COLUMN DOWNWARD STACKING GRID SYSTEM */
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px; width: 100%; margin-top: 8px; padding-bottom: 8px;
+    }
+    
+    .release { 
+      background: rgba(15, 15, 15, 0.4); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border-radius: 18px; padding: 28px; border: 1px solid rgba(255, 255, 255, 0.07); 
+      box-shadow: 0 16px 40px rgba(0,0,0,0.35); text-align: left;
+      display: flex; flex-direction: column; justify-content: space-between;
+      transform: translate3d(0,0,0); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .release:hover {
+      transform: translateY(-5px); border-color: rgba(255, 102, 0, 0.25);
+      box-shadow: 0 24px 48px rgba(255, 102, 0, 0.08);
+    }
+    
+    /* Hero Latest Card */
+    .latest-card {
+      background: rgba(20, 20, 20, 0.5); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 102, 0, 0.3); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      max-width: 800px; margin: 0 auto;
+    }
+    .latest-card:hover { transform: none; box-shadow: 0 20px 60px rgba(0,0,0,0.6); border-color: rgba(255, 102, 0, 0.5); }
+    .latest-card .desc { max-height: 300px; font-size: 1.05rem; }
+
+    .release-header { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .release h3 { color: #fff; font-size: 1.35rem; font-weight: 600; letter-spacing: -0.3px; }
+    .meta { color: #737373; font-size: 0.85rem; font-weight: 500; font-family: var(--font-mono); }
+    
+    .desc { 
+      color: #d4d4d4; font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px; 
+      overflow-y: auto; max-height: 180px; padding-right: 4px;
+    }
+    .desc ul, .desc ol { padding-left: 18px; margin: 8px 0; }
+    .desc code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 6px; font-size: 0.85em; font-family: var(--font-mono); }
+
+    .release-footer { 
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap; 
+      border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 16px; margin-top: auto;
+    }
+
+    .asset-menu { 
+      position: absolute; background: rgba(15, 15, 15, 0.95); border: 1px solid rgba(255, 255, 255, 0.08); 
+      border-radius: 12px; padding: 6px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); z-index: 80; display: none; 
+      min-width: 200px; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); margin-top: 4px; bottom: 100%; left: 0; margin-bottom: 8px;
+    }
+
+    /* MODRINTH CHANGELOG STYLED LAYOUT FOR PATCH NOTES */
+    .changelog-layout {
+      display: grid; grid-template-columns: 280px 1fr; gap: 32px;
+      width: 100%; max-width: 1200px; margin: 0 auto; text-align: left; align-items: start;
+    }
+    
+    /* Left Sticky Nav Container */
+    .changelog-sidebar {
+      position: sticky; top: 100px; background: rgba(14, 14, 14, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px;
+      padding: 20px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      display: flex; flex-direction: column; gap: 24px;
+    }
+    .sidebar-section h4 {
+      font-size: 0.82rem; text-transform: uppercase; letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.4); margin-bottom: 12px; font-weight: 700; font-family: var(--font-mono);
+    }
+    
+    /* Type Toggles Grid */
+    .type-toggles { display: flex; flex-direction: column; gap: 6px; }
+    .type-toggle {
+      background: transparent; border: 1px solid transparent; border-radius: 8px;
+      padding: 10px 14px; color: rgba(255, 255, 255, 0.65); text-align: left;
+      font-size: 0.92rem; font-weight: 500; cursor: pointer; display: flex;
+      justify-content: space-between; align-items: center; transition: all 0.2s ease;
+    }
+    .type-toggle:hover { background: rgba(255, 255, 255, 0.03); color: #fff; }
+    .type-toggle.active {
+      background: rgba(255, 102, 0, 0.08); border-color: rgba(255, 102, 0, 0.25); color: #ff8833;
+    }
+    .type-badge {
+      font-size: 0.72rem; padding: 2px 7px; border-radius: 12px; background: rgba(255,255,255,0.08); color: #fff; font-family: var(--font-mono);
+    }
+    .type-toggle.active .type-badge { background: #ff6600; color: #fff; }
+
+    /* Tags Scrolling List Box */
+    .tags-container { 
+      display: flex; flex-direction: column; gap: 5px; max-height: 260px;
+      overflow-y: auto; padding-right: 4px;
+    }
+    .tag-item {
+      background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 8px; padding: 8px 12px; color: rgba(255, 255, 255, 0.7);
+      font-size: 0.88rem; cursor: pointer; text-align: left; font-family: var(--font-mono);
+      transition: all 0.18s ease; display: flex; align-items: center; justify-content: space-between;
+    }
+    .tag-item:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+    .tag-item.active {
+      background: rgba(0, 162, 255, 0.1); border-color: rgba(0, 162, 255, 0.3); color: #00a2ff;
+    }
+    .tag-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3); }
+    .tag-item.active .tag-dot { background: #00a2ff; box-shadow: 0 0 8px #00a2ff; }
+
+    /* Right Stream Area Container - Modrinth Vertical Timeline Layout */
+    .changelog-stream { 
+      display: flex; flex-direction: column; width: 100%; position: relative;
+    }
+    
+    .log-node {
+      position: relative; padding: 0 0 40px 32px; transition: transform 0.3s ease;
+    }
+    
+    /* The Timeline Line Fragment */
+    .log-node::after {
+      content: ''; position: absolute; top: 20px; bottom: -6px; left: 5px;
+      width: 2px; background: rgba(255, 102, 0, 0.25); z-index: 1;
+    }
+    .log-node:last-child::after { display: none; }
+    
+    /* The Timeline Node Dot */
+    .log-node::before {
+      content: ''; position: absolute; top: 6px; left: 0;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #ff6600; box-shadow: 0 0 10px rgba(255, 102, 0, 0.6); z-index: 2;
+    }
+    .log-node.prerelease::before {
+      background: #f1c40f; box-shadow: 0 0 10px rgba(241, 196, 15, 0.6);
+    }
+    
+    /* Header Row Configuration */
+    .log-header-row {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 16px; gap: 16px; flex-wrap: wrap;
+    }
+    .log-title-area { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .log-title-area h2 { font-size: 1.45rem; font-weight: 700; color: #fff; margin: 0; letter-spacing: -0.5px; }
+    
+    .log-identity-line { font-size: 0.85rem; color: #a3a3a3; font-family: var(--font-mono); }
+    .log-identity-line a { color: #ff8833; text-decoration: none; font-weight: 500; }
+    .log-identity-line a:hover { text-decoration: underline; }
+    
+    .timeline-download-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: #ff8833; font-weight: 600; font-size: 0.95rem; text-decoration: none;
+      transition: color 0.2s;
+    }
+    .timeline-download-btn:hover { color: #fff; }
+    .timeline-download-btn svg { width: 16px; height: 16px; fill: currentColor; }
+    
+    /* Markdown Body Cleanup */
+    .log-body { color: #d4d4d4; font-size: 0.95rem; line-height: 1.6; text-align: left; }
+    .log-body h1, .log-body h2, .log-body h3 { color: #fff; margin: 16px 0 8px; font-weight: 600; letter-spacing: -0.3px; font-size: 1.1rem; }
+    .log-body p { margin-bottom: 12px; }
+    .log-body ul, .log-body ol { padding-left: 20px; margin-bottom: 16px; }
+    .log-body li { margin-bottom: 6px; }
+    .log-body pre { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); padding: 14px; border-radius: 10px; overflow-x: auto; margin: 14px 0; font-family: var(--font-mono); }
+    .log-body code { font-family: var(--font-mono); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 6px; font-size: 0.85em; color: #ffaa66; }
+
+    /* Scrollbars */
+    .desc::-webkit-scrollbar, .tags-container::-webkit-scrollbar, .drag-scroll-track::-webkit-scrollbar { width: 4px; height: 4px; }
+    .desc::-webkit-scrollbar-track, .tags-container::-webkit-scrollbar-track { background: transparent; }
+    .desc::-webkit-scrollbar-thumb, .tags-container::-webkit-scrollbar-thumb, .drag-scroll-track::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+
+    /* DRAGGABLE TRACK WRAPPER SETUPS */
+    .drag-scroll-track { overflow-x: auto; overflow-y: hidden; cursor: grab; display: flex; position: relative; touch-action: pan-x; user-select: none; max-width: 100%; }
+    .drag-scroll-track:active { cursor: grabbing; }
+
+    /* Overlays */
+    .overlay { position: fixed; inset: 0; background: rgba(3, 3, 3, 0.85); display: none; justify-content: center; align-items: center; z-index: 120; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .overlay-content { position: relative; transform-origin: center; animation: overlayIn .48s cubic-bezier(.2,.9,.2,1) forwards; }
+    .close-btn { position: absolute; top: -45px; right: 0; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+    .close-btn:hover { opacity: 1; }
+    @keyframes overlayIn { 0%{ transform: scale(.95) translateY(10px); opacity:0 } 100%{ transform: scale(1) translateY(0); opacity:1 } }
+    @keyframes overlayOut { 0%{ transform: scale(1) translateY(0); opacity:1 } 100%{ transform: scale(.95) translateY(10px); opacity:0 } }
+    .overlay-content.closing { animation: overlayOut .36s cubic-bezier(.2,.9,.2,1) forwards; }
+
+    /* Responsive Grid Breakpoints */
+    @media (max-width: 1024px) {
+      .grid-container { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .changelog-layout { grid-template-columns: 1fr; gap: 24px; }
+      .changelog-sidebar { position: static; width: 100%; }
+    }
+    @media (max-width: 680px) {
+      .hero h1 { font-size: 2.5rem; }
+      .panel img { max-width: 260px; max-height: 180px; }
+      .center-icon { width: 140px; height: 140px; }
+      .grid-container { grid-template-columns: 1fr; }
+      nav { padding: 16px 20px; }
+      nav a { margin: 0 8px; font-size: 0.88rem; }
+      .log-header-row { flex-direction: column; gap: 10px; }
+      .timeline-download-btn { align-self: flex-start; }
+      .filters button { padding: 10px 18px; font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-container" aria-hidden="true">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+  </div>
+
+  <nav>
+    <div class="left">
+      <a id="githubLink" href="https://github.com/xrejenx/RJLauncher" target="_blank" rel="noopener">GitHub</a>
+      <a href="#" class="discord-trigger">Discord</a>
+      <a href="#" id="navDownload">Download</a>
+      <a href="#" id="navUpdate">Update</a>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 0.7rem; color: #555; font-weight: 700; text-transform: uppercase; font-family: var(--font-mono);">Theme</span>
+      <button id="themeToggle" class="download-btn secondary" style="padding: 6px 12px; font-size: 0.75rem; border-radius: 8px;">Dark</button>
+      <span style="font-size: 0.7rem; color: #555; font-weight: 700; text-transform: uppercase; font-family: var(--font-mono);">UI Mode</span>
+      <button id="uiToggle" class="download-btn secondary" style="padding: 6px 12px; font-size: 0.75rem; border-radius: 8px;">Modern</button>
+    </div>
+    <div class="right"><a href="#" id="navHome">Home</a></div>
+  </nav>
+
+  <main id="home" class="page active" aria-hidden="false">
+    <section class="hero" role="banner" aria-label="RJLauncher hero">
+      <h1 class="shimmer-text">RJLauncher</h1>
+      <p>SuperLightWeight Launcher With Modern Features. Lightweight GUI design inspired by the legacy Mojang Minecraft Launcher.</p>
+
+      <div class="panel-wrapper" role="list" aria-label="Screenshots">
+        <div class="panel left" role="listitem" tabindex="0" aria-label="Main menu screenshot">
+          <img src="https://github.com/xrejenx/RJLauncher/raw/RJL/readme/MainMenu/mainmenu.png" alt="Main Menu">
+        </div>
+
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+          <div class="center-icon" aria-hidden="false">
+            <img src="https://github.com/xrejenx/RJLauncher/blob/RJL/readme/Icon/icon.png?raw=true" alt="RJLauncher Icon">
+          </div>
+          <div class="center-download">
+            <a id="centerDownloadBtn" class="download-btn" href="#" rel="noopener">Get Launcher</a>
+            <a href="#" class="download-btn secondary discord-trigger">Discord</a>
+          </div>
+        </div>
+
+        <div class="panel right" role="listitem" tabindex="0" aria-label="Instance create screenshot">
+          <img src="https://github.com/xrejenx/RJLauncher/raw/RJL/readme/InstanceCreateMenu/InstanceCreate.png" alt="Instance Create">
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section id="download" class="page" aria-hidden="true">
+    <div class="download-area" role="region" aria-label="Download area">
+      
+      <div style="text-align: center; margin-bottom: 8px;">
+        <h1 class="shimmer-text" style="font-size:2.8rem; font-weight:800; letter-spacing:-1px; margin-bottom:8px;">Get RJLauncher</h1>
+        <p style="color:#aaa; font-size:1.1rem;">Select your operating system to download the compatible build.</p>
+      </div>
+
+      <div class="filters" id="dlOsFilters">
+        <div class="glass-slider" id="dlOsSlider"></div>
+        <button data-os="windows" class="os-tab-btn active">Windows</button>
+        <button data-os="linux" class="os-tab-btn">Linux</button>
+        <button data-os="mac" class="os-tab-btn">macOS</button>
+      </div>
+
+      <div id="latestViewContainer" class="view-container active">
+        </div>
+
+      <div id="allViewContainer" class="view-container" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 16px;">
+          <div style="text-align: left;">
+            <h3 style="font-size:1.6rem; font-weight: 700; color: #fff; margin-bottom: 4px;">Previous Versions</h3>
+            <p id="allViewSubtitle" style="color: #888; font-size: 0.9rem;">Showing all compatible releases.</p>
+          </div>
+          <button id="backToLatestBtn" class="download-btn secondary" style="padding: 10px 20px; font-size: 0.9rem;">← Back to Latest</button>
+        </div>
+        <div class="grid-container" id="dlReleaseGrid"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="update" class="page" aria-hidden="true">
+    <div class="download-area" style="margin-top:10px;">
+      <h1 style="font-size:2.5rem; font-weight:800; letter-spacing:-1px; text-align:left; margin-bottom:12px; background:linear-gradient(90deg, #fff, #a3a3a3); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Updates</h1>
+      
+      <div class="changelog-layout">
+        <aside class="changelog-sidebar">
+          <div class="sidebar-section">
+            <h4>Release Type</h4>
+            <div class="type-toggles">
+              <button class="type-toggle active" data-type="all">
+                All Updates <span class="type-badge" id="badgeCountAll">0</span>
+              </button>
+              <button class="type-toggle" data-type="release">
+                Stable Releases <span class="type-badge" id="badgeCountStable">0</span>
+              </button>
+              <button class="type-toggle" data-type="prerelease">
+                Pre-Releases <span class="type-badge" id="badgeCountPre">0</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <h4>Filter by Version Tag</h4>
+            <div class="drag-scroll-track" id="sidebarTagTrack" style="cursor:grab; max-height:280px; overflow-y:auto; overflow-x:hidden; display:block;">
+              <div class="tags-container" id="sidebarTagsContainer">
+                <div class="tag-item active" data-tag="all">
+                  <span>all-tags</span>
+                  <div class="tag-dot"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="changelog-stream" id="changelogStreamContainer">
+          </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="overlay" id="discordOverlay" aria-hidden="true">
+    <div class="overlay-content" style="background:#0a0a0a; padding:32px; border-radius:20px; text-align:center; min-width:320px; border:1px solid rgba(255,255,255,0.1); box-shadow: 0 40px 100px rgba(0,0,0,0.8);">
+      <button class="close-btn" id="discordCloseBtn" aria-label="Close">✕</button>
+      <h2 style="margin-bottom:8px; font-size: 1.5rem;">Join our Community</h2>
+      <p style="color: #888; margin-bottom: 24px; font-size: 0.9rem;">Choose a server to continue</p>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <a href="https://discord.gg/mKeHZ6JMHH" target="_blank" class="download-btn" style="width:100%; text-align:center;">RJ MinecraftLauncher</a>
+        <a href="https://discord.gg/j6NpPypGue" target="_blank" class="download-btn secondary" style="width:100%; text-align:center;">Rezen Studios Community</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="overlay-content" id="overlayContent" role="dialog" aria-modal="true">
+      <button class="close-btn" id="closeBtn" aria-label="Close">✕</button>
+      <img id="overlayImg" src="" alt="Expanded Screenshot" style="max-width:92vw; max-height:86vh; border-radius:14px; box-shadow: 0 30px 90px rgba(0,0,0,0.9);">
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <script>
+    /* Page engine management switching with smooth layout transitions */
+    const pages = { 
+      home: document.getElementById('home'), 
+      download: document.getElementById('download'),
+      update: document.getElementById('update')
+    };
+    let switching = false;
+
+    function animateSwitch(fromEl, toEl) {
+      return new Promise(resolve => {
+        if (switching) { resolve(); return; }
+        switching = true;
+        fromEl.classList.add('exiting');
+        fromEl.setAttribute('aria-hidden','true');
+        setTimeout(() => {
+          fromEl.classList.remove('active','exiting');
+          fromEl.style.display = 'none';
+          toEl.style.display = 'flex';
+          void toEl.offsetWidth;
+          toEl.classList.add('active');
+          toEl.setAttribute('aria-hidden','false');
+          setTimeout(() => { switching = false; resolve(); }, 460);
+        }, 260);
+      });
+    }
+
+    function showPage(id) {
+      const current = document.querySelector('.page.active');
+      const next = pages[id];
+      if (!next || current === next) return;
+      
+      animateSwitch(current, next).then(() => { 
+        if (id === 'download') {
+          loadReleases().then(() => { 
+            setTimeout(repositionDlSlider, 50); 
+          });
+        } else if (id === 'update') {
+          loadReleases().then(() => { renderChangelogStream(); });
+        }
+      });
+    }
+
+    document.getElementById('navDownload').addEventListener('click', (e) => { e.preventDefault(); showPage('download'); });
+    document.getElementById('navHome').addEventListener('click', (e) => { e.preventDefault(); showPage('home'); });
+    document.getElementById('navUpdate').addEventListener('click', (e) => { e.preventDefault(); showPage('update'); });
+
+    /* Overlay logic */
+    const overlay = document.getElementById('overlay');
+    const overlayContent = document.getElementById('overlayContent');
+    const overlayImg = document.getElementById('overlayImg');
+    const closeBtn = document.getElementById('closeBtn');
+    const discordOverlay = document.getElementById('discordOverlay');
+    const discordCloseBtn = document.getElementById('discordCloseBtn');
+
+    function openOverlay(src){
+      overlayImg.src = src;
+      overlay.style.display = 'flex';
+      overlay.setAttribute('aria-hidden', 'false');
+      overlayContent.classList.remove('closing');
+      overlayContent.style.animation = 'overlayIn .48s cubic-bezier(.2,.9,.2,1) forwards';
+      closeBtn.focus();
+    }
+
+    function openDiscordPopup(e) {
+      if (e) e.preventDefault();
+      discordOverlay.style.display = 'flex';
+      discordOverlay.setAttribute('aria-hidden', 'false');
+      discordOverlay.querySelector('.overlay-content').classList.remove('closing');
+      discordOverlay.querySelector('.overlay-content').style.animation = 'overlayIn .48s cubic-bezier(.2,.9,.2,1) forwards';
+    }
+
+    function closeDiscordPopup() {
+      discordOverlay.querySelector('.overlay-content').classList.add('closing');
+      setTimeout(() => { discordOverlay.style.display = 'none'; discordOverlay.setAttribute('aria-hidden', 'true'); }, 360);
+    }
+
+    function closeOverlay(){
+      overlayContent.classList.add('closing');
+      overlayContent.style.animation = 'overlayOut .36s cubic-bezier(.2,.9,.2,1) forwards';
+      setTimeout(()=>{ overlay.style.display='none'; overlayImg.src=''; overlay.setAttribute('aria-hidden','true'); overlayContent.classList.remove('closing'); }, 360);
+    }
+    closeBtn.addEventListener('click', closeOverlay);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.style.display === 'flex') closeOverlay(); });
+
+    discordCloseBtn.addEventListener('click', closeDiscordPopup);
+    discordOverlay.addEventListener('click', (e) => { if (e.target === discordOverlay) closeDiscordPopup(); });
+    document.querySelectorAll('.discord-trigger').forEach(el => el.addEventListener('click', openDiscordPopup));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && discordOverlay.style.display === 'flex') closeDiscordPopup(); });
+
+    /* Attach expand to home panels */
+    document.querySelectorAll('.panel').forEach(panel => {
+      panel.addEventListener('click', () => {
+        const img = panel.querySelector('img');
+        if (img && img.src) openOverlay(img.src);
+      });
+      panel.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); panel.click(); } });
+    });
+
+    /* HIGH-PERFORMANCE MOUSE & TOUCH DRAGGABLE INTERACTION ENGINE */
+    function setupDraggableTrack(trackElement) {
+      if (!trackElement) return;
+      let isDown = false;
+      let startX, startY;
+      let scrollLeft, scrollTop;
+      let hasDragged = false;
+
+      trackElement.addEventListener('mousedown', (e) => {
+        isDown = true;
+        hasDragged = false;
+        startX = e.pageX - trackElement.offsetLeft;
+        startY = e.pageY - trackElement.offsetTop;
+        scrollLeft = trackElement.scrollLeft;
+        scrollTop = trackElement.scrollTop;
+      });
+      trackElement.addEventListener('mouseleave', () => { isDown = false; });
+      trackElement.addEventListener('mouseup', () => { isDown = false; });
+      trackElement.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        
+        const x = e.pageX - trackElement.offsetLeft;
+        const walkX = (x - startX) * 1.5;
+        if (Math.abs(walkX) > 3) hasDragged = true;
+        trackElement.scrollLeft = scrollLeft - walkX;
+
+        const y = e.pageY - trackElement.offsetTop;
+        const walkY = (y - startY) * 1.5;
+        if (Math.abs(walkY) > 3) hasDragged = true;
+        trackElement.scrollTop = scrollTop - walkY;
+      });
+
+      trackElement.addEventListener('click', (e) => {
+        if (hasDragged) { e.preventDefault(); e.stopPropagation(); }
+      }, true);
+    }
+    setupDraggableTrack(document.getElementById('sidebarTagTrack'));
+
+    /* --- GITHUB DATA ENGINE --- */
+    let allReleases = [];
+    
+    // Download Tab State
+    let currentDlOs = 'windows';
+    let isShowingAllDl = false;
+
+    // Patch Notes State
+    let selectedChangelogType = 'all';
+    let selectedChangelogTag = 'all';
+
+    function detectAssetOS(name){
+      const n = (name || '').toLowerCase();
+      if (n.includes('win') || n.includes('.exe') || n.includes('.msi') || n.includes('windows')) return 'windows';
+      if (n.includes('appimage') || n.includes('.appimage') || n.includes('.deb') || n.includes('.rpm') || n.includes('linux') || n.includes('elf')) return 'linux';
+      if (n.includes('mac') || n.includes('darwin') || n.includes('.dmg') || n.includes('.pkg') || n.includes('.app')) return 'mac';
+      return null;
+    }
+
+    async function loadReleases(){
+      if (allReleases.length > 0) { return; }
+      try {
+        const resp = await fetch('https://api.github.com/repos/xrejenx/RJLauncher/releases');
+        if (!resp.ok) throw new Error('Failed to fetch releases: ' + resp.status);
+        const data = await resp.json();
+        allReleases = Array.isArray(data) ? data : [];
+        
+        // Initialize systems
+        initDownloadTabs();
+        renderDownloadContent();
+        buildSidebarTags();
+        updateMetadataBadges();
+      } catch (err) {
+        const errHtml = `<div style="color:#f66; padding:20px; text-align:center; width:100%;">Unable to load releases. ${err.message}</div>`;
+        document.getElementById('latestViewContainer').innerHTML = errHtml;
+        document.getElementById('changelogStreamContainer').innerHTML = errHtml;
+        console.error(err);
+      }
+    }
+
+    /* --- DOWNLOAD PAGE LOGIC --- */
+    
+    // Position the glass slider for Download OS tabs
+    function repositionDlSlider() {
+      const activeBtn = document.querySelector('.os-tab-btn.active');
+      const slider = document.getElementById('dlOsSlider');
+      if (activeBtn && slider) {
+        slider.style.width = activeBtn.offsetWidth + 'px';
+        slider.style.left = activeBtn.offsetLeft + 'px';
+      }
+    }
+    window.addEventListener('resize', repositionDlSlider);
+
+    function initDownloadTabs() {
+      // Check which OS platforms actually have compiled assets in the entire repo history
+      const hasWin = allReleases.some(r => (r.assets || []).some(a => detectAssetOS(a.name) === 'windows'));
+      const hasLin = allReleases.some(r => (r.assets || []).some(a => detectAssetOS(a.name) === 'linux'));
+      const hasMac = allReleases.some(r => (r.assets || []).some(a => detectAssetOS(a.name) === 'mac'));
+
+      const btnWin = document.querySelector('.os-tab-btn[data-os="windows"]');
+      const btnLin = document.querySelector('.os-tab-btn[data-os="linux"]');
+      const btnMac = document.querySelector('.os-tab-btn[data-os="mac"]');
+
+      if(!hasWin) btnWin.classList.add('disabled');
+      if(!hasLin) btnLin.classList.add('disabled');
+      if(!hasMac) btnMac.classList.add('disabled');
+
+      // Add click listeners
+      document.querySelectorAll('.os-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if(btn.classList.contains('disabled')) return; // Block disabled clicks
+          
+          document.querySelectorAll('.os-tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentDlOs = btn.dataset.os;
+          isShowingAllDl = false; // Reset view back to 'Latest' upon tab change
+          
+          repositionDlSlider();
+          renderDownloadContent();
+        });
+      });
+      
+      // Auto-select first available tab if default (windows) is unavailable
+      if(!hasWin && !btnWin.classList.contains('active')) {
+        if(hasLin) { btnLin.click(); } 
+        else if(hasMac) { btnMac.click(); }
+      } else {
+        setTimeout(repositionDlSlider, 50);
+      }
+    }
+
+    // Builder for the OS-Targeted Release Card
+    function buildTargetedReleaseCard(release, targetOs) {
+      const container = document.createElement('div');
+      container.className = 'release';
+
+      const header = document.createElement('div');
+      header.className = 'release-header';
+      const title = document.createElement('h3');
+      title.textContent = release.name || release.tag_name || 'Untitled Release';
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const date = new Date(release.published_at || release.created_at || Date.now());
+      meta.textContent = `${release.tag_name || ''} • ${date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}`;
+      header.appendChild(title);
+      header.appendChild(meta);
+      container.appendChild(header);
+
+      const desc = document.createElement('div');
+      desc.className = 'desc';
+      try { desc.innerHTML = marked.parse(release.body || ''); } catch(e) { desc.textContent = release.body || ''; }
+      container.appendChild(desc);
+
+      const footer = document.createElement('div');
+      footer.className = 'release-footer';
+
+      // We only render buttons for the TARGET OS to keep the UI isolated and clean
+      const matching = (release.assets || []).filter(a => detectAssetOS(a.name) === targetOs);
+      
+      if (matching.length === 1) {
+        const a = document.createElement('a');
+        a.className = 'download-btn';
+        a.style.padding = "10px 20px"; a.style.fontSize = "0.9rem";
+        a.href = matching[0].browser_download_url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.innerHTML = `<svg style="width:16px; height:16px; fill:currentColor; vertical-align:middle; margin-right:6px;" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Download for ${targetOs.charAt(0).toUpperCase() + targetOs.slice(1)}`;
+        footer.appendChild(a);
+      } else if (matching.length > 1) {
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        wrapper.style.display = 'inline-block';
+        
+        const mainBtn = document.createElement('button');
+        mainBtn.className = 'download-btn';
+        mainBtn.style.padding = "10px 20px"; mainBtn.style.fontSize = "0.9rem";
+        mainBtn.type = 'button';
+        mainBtn.innerHTML = `Select ${targetOs.charAt(0).toUpperCase() + targetOs.slice(1)} Installer ▾`;
+        wrapper.appendChild(mainBtn);
+
+        const menu = document.createElement('div');
+        menu.className = 'asset-menu';
+        matching.forEach(asset => {
+          const link = document.createElement('a');
+          link.href = asset.browser_download_url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = asset.name;
+          link.style.display = 'block';
+          link.style.padding = '10px 12px';
+          link.style.color = 'rgba(255,255,255,0.8)';
+          link.style.textDecoration = 'none';
+          link.style.borderRadius = '8px';
+          link.style.fontSize = '0.85rem';
+          link.style.transition = 'all 0.15s ease';
+          link.addEventListener('mouseover', () => { link.style.background = 'rgba(255,102,0,0.15)'; link.style.color = '#ff8833'; });
+          link.addEventListener('mouseout', () => { link.style.background = 'transparent'; link.style.color = 'rgba(255,255,255,0.8)'; });
+          menu.appendChild(link);
+        });
+        wrapper.appendChild(menu);
+        mainBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const visible = menu.style.display === 'block';
+          document.querySelectorAll('.asset-menu').forEach(m => m.style.display = 'none');
+          menu.style.display = visible ? 'none' : 'block';
+        });
+        footer.appendChild(wrapper);
+        document.addEventListener('click', () => { menu.style.display = 'none'; });
+      }
+
+      // Add view git option
+      const ghLink = document.createElement('a');
+      ghLink.href = release.html_url;
+      ghLink.target = '_blank';
+      ghLink.rel = 'noopener noreferrer';
+      ghLink.className = 'download-btn secondary';
+      ghLink.style.padding = "10px 20px"; ghLink.style.fontSize = "0.9rem";
+      ghLink.textContent = 'GitHub';
+      footer.appendChild(ghLink);
+
+      container.appendChild(footer);
+      return container;
+    }
+
+    function renderDownloadContent() {
+      const latestCont = document.getElementById('latestViewContainer');
+      const allCont = document.getElementById('allViewContainer');
+      const gridCont = document.getElementById('dlReleaseGrid');
+      
+      const filtered = allReleases.filter(rel => {
+        return (rel.assets || []).some(a => detectAssetOS(a.name) === currentDlOs);
+      });
+
+      if (filtered.length === 0) {
+        latestCont.innerHTML = `<div style="text-align:center; padding: 40px; color: #888;">No compatible releases detected for this operating system.</div>`;
+        latestCont.classList.add('active');
+        allCont.classList.remove('active');
+        setTimeout(()=>{ latestCont.style.display = 'block'; allCont.style.display = 'none'; }, 50);
+        return;
+      }
+
+      const osNameFormat = currentDlOs === 'mac' ? 'macOS' : (currentDlOs.charAt(0).toUpperCase() + currentDlOs.slice(1));
+
+      if (!isShowingAllDl) {
+        // --- SHOW ONLY LATEST (Hero Card) ---
+        latestCont.style.display = 'block';
+        allCont.style.display = 'none';
+        latestCont.classList.add('active');
+        allCont.classList.remove('active');
+        latestCont.innerHTML = '';
+        
+        const latestRel = filtered[0];
+        const card = buildTargetedReleaseCard(latestRel, currentDlOs);
+        card.classList.add('latest-card');
+        
+        // Add preview screenshot for flat mode layout
+        const preview = document.createElement('div');
+        preview.className = 'flat-preview';
+        preview.style.display = 'none'; 
+        preview.innerHTML = `<img src="https://github.com/xrejenx/RJLauncher/raw/RJL/readme/MainMenu/mainmenu.png" style="width:100%; border-radius:8px; border:1px solid #333;">`;
+        card.appendChild(preview);
+
+        const seeAllWrap = document.createElement('div');
+        seeAllWrap.style.marginTop = '32px';
+        seeAllWrap.style.textAlign = 'center';
+        seeAllWrap.innerHTML = `
+          <p style="margin-bottom:12px; font-size:0.95rem; text-align: center !important;">Looking for an older build for ${osNameFormat}?</p>
+          <button id="seeAllVersionsBtn" class="download-btn secondary">See all versions</button>
+        `;
+        
+        latestCont.appendChild(card);
+        latestCont.appendChild(seeAllWrap);
+
+        document.getElementById('seeAllVersionsBtn').addEventListener('click', () => {
+          isShowingAllDl = true;
+          renderDownloadContent();
+        });
+
+      } else {
+        // --- SHOW ALL (3-Tile Grid) ---
+        latestCont.style.display = 'none';
+        allCont.style.display = 'block';
+        latestCont.classList.remove('active');
+        allCont.classList.add('active');
+        gridCont.innerHTML = '';
+        
+        document.getElementById('allViewSubtitle').textContent = `Showing all compatible releases for ${osNameFormat}.`;
+
+        filtered.forEach((rel, idx) => {
+          const card = buildTargetedReleaseCard(rel, currentDlOs);
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(16px)';
+          gridCont.appendChild(card);
+          
+          setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+          }, 40 * idx);
+        });
+      }
+    }
+
+    document.getElementById('backToLatestBtn').addEventListener('click', () => {
+      isShowingAllDl = false;
+      renderDownloadContent();
+    });
+
+
+    /* --- MODRINTH CHANGELOG ENGINE (PATCH NOTES) --- */
+    function updateMetadataBadges() {
+      document.getElementById('badgeCountAll').textContent = allReleases.length;
+      document.getElementById('badgeCountStable').textContent = allReleases.filter(r => !r.prerelease).length;
+      document.getElementById('badgeCountPre').textContent = allReleases.filter(r => r.prerelease).length;
+    }
+
+    function buildSidebarTags() {
+      const container = document.getElementById('sidebarTagsContainer');
+      container.innerHTML = `
+        <div class="tag-item active" data-tag="all">
+          <span>all-tags</span>
+          <div class="tag-dot"></div>
+        </div>
+      `;
+      
+      allReleases.forEach(rel => {
+        if (!rel.tag_name) return;
+        const div = document.createElement('div');
+        div.className = 'tag-item';
+        div.dataset.tag = rel.tag_name;
+        div.innerHTML = `<span>${rel.tag_name}</span><div class="tag-dot"></div>`;
+        container.appendChild(div);
+      });
+
+      document.querySelectorAll('.tag-item').forEach(item => {
+        item.addEventListener('click', () => {
+          document.querySelectorAll('.tag-item').forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+          selectedChangelogTag = item.dataset.tag || 'all';
+          renderChangelogStream();
+        });
+      });
+    }
+
+    function renderChangelogStream() {
+      const container = document.getElementById('changelogStreamContainer');
+      if(!container) return;
+      container.innerHTML = '';
+
+      const filtered = allReleases.filter(rel => {
+        if (selectedChangelogType === 'release' && rel.prerelease) return false;
+        if (selectedChangelogType === 'prerelease' && !rel.prerelease) return false;
+        if (selectedChangelogTag !== 'all' && rel.tag_name !== selectedChangelogTag) return false;
+        return true;
+      });
+
+      if(filtered.length === 0) {
+        container.innerHTML = `<div style="padding: 60px; text-align: center; color: rgba(255,255,255,0.4);">No matching update records found.</div>`;
+        return;
+      }
+
+      filtered.forEach((rel, idx) => {
+        const node = document.createElement('article');
+        node.className = `log-node ${rel.prerelease ? 'prerelease' : ''}`;
+        node.style.opacity = '0';
+        node.style.transform = 'translateY(15px)';
+
+        const dateStr = new Date(rel.published_at || rel.created_at).toLocaleDateString(undefined, {
+          year: 'numeric', month: 'short', day: 'numeric'
+        });
+        
+        const authorLogin = rel.author ? rel.author.login : 'RJLauncher';
+        const authorUrl = rel.author ? rel.author.html_url : '#';
+
+        let renderedBody = '';
+        try { renderedBody = marked.parse(rel.body || '*No changelog documentation provided.*'); } catch(e) { renderedBody = rel.body || ''; }
+
+        node.innerHTML = `
+          <div class="log-header-row">
+            <div class="log-title-area">
+              <h2>${rel.name || rel.tag_name || 'Untitled Build'}</h2>
+              <div class="log-identity-line">
+                by <a href="${authorUrl}" target="_blank" rel="noopener">${authorLogin}</a> on ${dateStr}
+              </div>
+            </div>
+            <button class="timeline-download-btn" style="background:none; border:none; cursor:pointer;">
+              <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+              Download
+            </button>
+          </div>
+          <div class="log-body">${renderedBody}</div>
+        `;
+
+        node.querySelector('.timeline-download-btn').onclick = () => {
+          isShowingAllDl = true;
+          showPage('download');
+          renderDownloadContent();
+        };
+
+        container.appendChild(node);
+        setTimeout(() => {
+          node.style.transition = 'all 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
+          node.style.opacity = '1';
+          node.style.transform = 'translateY(0)';
+        }, 50 * idx);
+      });
+    }
+
+    document.querySelectorAll('.type-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.type-toggle').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedChangelogType = btn.dataset.type || 'all';
+        renderChangelogStream();
+      });
+    });
+
+    // Boot
+    loadReleases().catch(()=>{});
+    document.getElementById('centerDownloadBtn').addEventListener('click', (e) => { e.preventDefault(); showPage('download'); });
+
+    /* Theme Toggle Logic */
+    const themeToggle = document.getElementById('themeToggle');
+    const updateThemeBtn = (isLight) => {
+      themeToggle.textContent = isLight ? 'Light' : 'Dark';
+    };
+
+    themeToggle.addEventListener('click', () => {
+      const isLight = document.body.classList.toggle('light-mode');
+      updateThemeBtn(isLight);
+      localStorage.setItem('rj-theme', isLight ? 'light' : 'dark');
+    });
+    if (localStorage.getItem('rj-theme') === 'light') {
+      document.body.classList.add('light-mode');
+      updateThemeBtn(true);
+    }
+
+    /* UI Mode Toggle */
+    const uiToggle = document.getElementById('uiToggle');
+    uiToggle.addEventListener('click', () => {
+      const isFlat = document.body.classList.toggle('flat-mode');
+      uiToggle.textContent = isFlat ? 'Flat' : 'Modern';
+      setTimeout(repositionDlSlider, 50); 
+      localStorage.setItem('rj-ui-mode', isFlat ? 'flat' : 'modern');
+    });
+    if (localStorage.getItem('rj-ui-mode') === 'flat') {
+      document.body.classList.add('flat-mode');
+      uiToggle.textContent = 'Flat';
+    }
+  </script>
+</body>
+</html>
